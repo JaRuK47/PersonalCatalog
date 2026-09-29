@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Клуб Инсайд{% endblock %}</title>
+</head>
+<body>
+    <header>
+        <a href="{% url 'venue:home' %}">Главная</a> |
+        <a href="{% url 'venue:schedule' %}">Расписание</a> |
+        {% if user.is_authenticated %}
+            <a href="{% url 'venue:my_bookings' %}">Мои брони</a> |
+            Привет, {{ user.username }}!
+        {% else %}
+            <a href="/admin/login/">Войти</a>
+        {% endif %}
+    </header>
+    <hr>
+    {% block content %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Мои бронирования</h1>
+<ul>
+    {% for b in bookings %}
+        <li>
+            {{ b.session.date }} — {{ b.session.venue.name }}
+            — статус: {{ b.get_status_display }}
+        </li>
+    {% empty %}
+        <li>У вас пока нет броней.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

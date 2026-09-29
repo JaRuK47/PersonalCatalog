@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Клуб спортивной мафии «Инсайд»</h1>
+<p>Добро пожаловать! Скоро игры:</p>
+<ul>
+    {% for s in upcoming_sessions %}
+        <li>
+            <a href="{% url 'venue:session_detail' s.id %}">
+                {{ s.date }} {{ s.start_time }} — {{ s.venue.name }}
+            </a>
+        </li>
+    {% empty %}
+        <li>Пока нет запланированных игр.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Расписание игр</h1>
+<table  border="1" cellpadding="6">
+    <tr>
+        <th>Дата</th><th>Время</th><th>Место</th><th>Статус</th><th></th>
+    </tr>
+    {% for s in sessions %}
+    <tr>
+        <td>{{ s.date }}</td>
+        <td>{{ s.start_time }}</td>
+        <td>{{ s.venue.name }}</td>
+        <td>{{ s.status }}</td>
+        <td><a href="{% url 'venue:session_detail' s.id %}">Подробнее</a></td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

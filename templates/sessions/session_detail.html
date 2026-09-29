@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Игра {{ session.date }} в {{ session.start_time }}</h1>
+<p>Место: {{ session.venue.name }} ({{ session.venue.address }})</p>
+<p>Свободных мест: {{ free_seats }} из {{ session.max_players }}</p>
+
+<h2>Записались:</h2>
+<ul>
+    {% for b in bookings %}
+        <li>{{ b.user.username }} — до {{ b.leave_time|default:"конца" }}</li>
+    {% empty %}
+        <li>Пока никто не записался.</li>
+    {% endfor %}
+</ul>
+
+{# Кнопка бронирования появится позже, после логики проверки мест #}
+{% endblock %}
