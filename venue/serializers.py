@@ -1,6 +1,11 @@
 from rest_framework import serializers
 from .models import Venue, Session, Booking, Round, RoundPlayer
+from django.contrib.auth.models import User
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username']
 
 class VenueSerializer(serializers.ModelSerializer):
     class Meta:
