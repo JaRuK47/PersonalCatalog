@@ -4,12 +4,10 @@ import axios from 'axios';
 
 const rounds = ref([]);
 const sessions = ref([]);
-const users = ref([]); // Нам понадобятся пользователи для добавления в партию
+const users = ref([]);
 
-// Данные новой партии
 const roundToAdd = ref({ session: null, number: 1, start_time: '' });
 
-// Массив игроков, которых мы добавляем прямо в форме
 const playersToAdd = ref([]);
 
 async function fetchAll() {
@@ -23,7 +21,6 @@ async function fetchAll() {
   users.value = u.data;
 }
 
-// Автонумерация партии
 watch(() => roundToAdd.value.session, (newSessionId) => {
   if (!newSessionId) return;
   const sessionRounds = rounds.value.filter(r => r.session === newSessionId);
@@ -35,53 +32,43 @@ watch(() => roundToAdd.value.session, (newSessionId) => {
   }
 });
 
-// Добавить пустую строку для ввода нового игрока
 function addPlayerRow() {
   playersToAdd.value.push({ user: null, role: 'Мирный', points: 0, won: false });
 }
 
-// Удалить игрока из формы (если ошиблись)
 function removePlayerRow(index) {
   playersToAdd.value.splice(index, 1);
 }
 
 async function onRoundAdd() {
   try {
-    // 1. Создаем саму партию
-    // Если время не выбрано (пустая строка), отправляем null, чтобы Django не ругался
     const roundPayload = { ...roundToAdd.value };
     if (!roundPayload.start_time) roundPayload.start_time = null;
 
     const roundResponse = await axios.post('/api/rounds/', roundPayload);
     const newRoundId = roundResponse.data.id;
 
-    // 2. Если в форме есть игроки, создаем их по очереди
-    // (Используем Promise.all, чтобы они отправлялись одновременно)
     if (playersToAdd.value.length > 0) {
       const playerPromises = playersToAdd.value.map(player => {
         return axios.post('/api/round-players/', {
           ...player,
-          round: newRoundId // Привязываем к только что созданной партии
+          round: newRoundId
         });
       });
       await Promise.all(playerPromises);
     }
 
-    // 3. Очищаем форму и обновляем список
     roundToAdd.value = { session: null, number: 1, start_time: '' };
     playersToAdd.value = [];
     await fetchAll();
     alert('Партия и игроки успешно сохранены!');
 
   } catch (e) {
-    // ПРАВИЛЬНАЯ ОБРАБОТКА ОШИБОК
     if (e.response && e.response.data) {
       const errors = e.response.data;
-      // Если ошибка в полях session или number — значит это дубликат
       if (errors.session || errors.number || errors.non_field_errors) {
         alert('Ошибка: Партия с таким номером уже существует в этой сессии!');
       } else {
-        // Если другие поля (например, время или роль) — выводим текст ошибки
         alert('Ошибка валидации: ' + JSON.stringify(errors));
       }
     } else {
@@ -113,7 +100,6 @@ onMounted(fetchAll);
     </div>
     <div class="card-body">
       <form @submit.prevent="onRoundAdd">
-        <!-- Основные данные партии -->
         <div class="row g-2 mb-3 align-items-end">
           <div class="col-md-5">
             <label class="form-label">Сессия</label>
@@ -139,7 +125,6 @@ onMounted(fetchAll);
           Пока никто не добавлен. Нажмите кнопку ниже.
         </div>
 
-        <!-- Строки с игроками -->
         <div v-for="(p, index) in playersToAdd" :key="index" class="row g-2 mb-2 align-items-center">
           <div class="col-md-3">
             <select v-model.number="p.user" class="form-select" required>
@@ -176,7 +161,6 @@ onMounted(fetchAll);
     </div>
   </div>
 
-  <!-- Таблица созданных партий -->
   <h3>Сыгранные партии</h3>
   <table class="table table-striped">
     <thead>

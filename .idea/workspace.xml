@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="8597d0f7-3a7d-41f5-8032-59251221d7f5" name="Changes" comment="create vue">
-      <change afterPath="$PROJECT_DIR$/client/src/components/BookingList.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/components/RoundList.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/components/RoundPlayerList.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/components/SessionList.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/components/VenueList.vue" afterDir="false" />
+    <list default="true" id="8597d0f7-3a7d-41f5-8032-59251221d7f5" name="Changes" comment="create task1 for vue">
+      <change afterPath="$PROJECT_DIR$/client/src/components/NavBar.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/pages/LoginPage.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/stores/profileStore.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/components/BookingList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/BookingList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/components/RoundList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/RoundList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/components/RoundPlayerList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/RoundPlayerList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/components/SessionList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/SessionList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/components/VenueList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/VenueList.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/venue/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/venue/api.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/venue/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/venue/serializers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/venue/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/venue/urls.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -26,6 +27,7 @@
       <list>
         <option value="Python Script" />
         <option value="HTML File" />
+        <option value="JavaScript File" />
         <option value="Vue Composition API Component" />
         <option value="Vue Options API Component" />
       </list>
@@ -55,40 +57,43 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
-    &quot;Django Server.server.executor&quot;: &quot;Run&quot;,
-    &quot;Django tests.Test: venue.tests.RoundPlayerViewSetTestCase.test_create_round_player.executor&quot;: &quot;Run&quot;,
-    &quot;Django tests.Test: venue.tests.executor&quot;: &quot;Run&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.tests.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenDjangoStructureViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.intellij.python.django.customization.DjangoModulesConfigurable&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Program Files\\JetBrains\\PyCharm 2026.1.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "DefaultHtmlFileTemplate": "HTML File",
+    "Django Server.server.executor": "Run",
+    "Django tests.Test: venue.tests.RoundPlayerViewSetTestCase.test_create_round_player.executor": "Run",
+    "Django tests.Test: venue.tests.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.tests.executor": "Run",
+    "RunOnceActivity.OpenDjangoStructureViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "main",
+    "nodejs_package_manager_path": "npm",
+    "npm.dev.executor": "Run",
+    "settings.editor.selected.configurable": "com.intellij.python.django.customization.DjangoModulesConfigurable",
+    "ts.external.directory.path": "C:\\Program Files\\JetBrains\\PyCharm 2026.1.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;vue.recent.templates&quot;: [
-      &quot;Vue Composition API Component&quot;,
-      &quot;Vue Options API Component&quot;
+  "keyToStringList": {
+    "vue.recent.templates": [
+      "Vue Composition API Component",
+      "Vue Options API Component"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\anuch\PycharmProjects\PersonalCatalog\client\src\stores" />
+      <recent name="C:\Users\anuch\PycharmProjects\PersonalCatalog\client\src\pages" />
       <recent name="C:\Users\anuch\PycharmProjects\PersonalCatalog" />
       <recent name="C:\Users\anuch\PycharmProjects\PersonalCatalog\app" />
     </key>
   </component>
-  <component name="RunManager" selected="Django tests.Test: venue.tests.RoundPlayerViewSetTestCase.test_create_round_player">
+  <component name="RunManager" selected="npm.dev">
     <configuration name="Test: venue.tests" type="DjangoTestsConfigurationType" temporary="true">
       <module name="PersonalCatalog" />
       <option name="ENV_FILES" value="" />
@@ -121,8 +126,7 @@
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
-      <option name="SDK_HOME" value="$PROJECT_DIR$/.venv/Scripts/python.exe" />
-      <option name="SDK_NAME" value="Python 3.13 (PersonalCatalog)" />
+      <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
@@ -240,6 +244,23 @@
       <option name="customRunCommand" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="dev" type="js.build_tools.npm" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/client/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="dev" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Django Server.server" />
+      <item itemvalue="Django tests.Test: venue.tests" />
+      <item itemvalue="Django tests.Test: venue.tests.RoundPlayerViewSetTestCase.test_create_round_player" />
+      <item itemvalue="npm.dev" />
+      <item itemvalue="Python.tests" />
+    </list>
     <recent_temporary>
       <list>
         <item itemvalue="Django tests.Test: venue.tests.RoundPlayerViewSetTestCase.test_create_round_player" />
@@ -276,7 +297,9 @@
       <workItem from="1791883479769" duration="99000" />
       <workItem from="1791943771211" duration="3401000" />
       <workItem from="1792197379937" duration="3393000" />
-      <workItem from="1792261804154" duration="3101000" />
+      <workItem from="1792261804154" duration="3233000" />
+      <workItem from="1792417866715" duration="171000" />
+      <workItem from="1792548434266" duration="4849000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -334,7 +357,15 @@
       <option name="project" value="LOCAL" />
       <updated>1791343633968</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="create task1 for vue">
+      <option name="closed" value="true" />
+      <created>1792265233936</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1792265233936</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -359,7 +390,8 @@
     <MESSAGE value="create task1" />
     <MESSAGE value="create test" />
     <MESSAGE value="create vue" />
-    <option name="LAST_COMMIT_MESSAGE" value="create vue" />
+    <MESSAGE value="create task1 for vue" />
+    <option name="LAST_COMMIT_MESSAGE" value="create task1 for vue" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/PersonalCatalog$Test__venue_tests.coverage" NAME="Test: venue.tests Coverage Results" MODIFIED="1791340141571" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />

@@ -23,7 +23,6 @@ async function fetchAll() {
 
 async function onPlayerAdd() {
   await axios.post('/api/round-players/', playerToAdd.value);
-  // Очищаем форму, но оставляем выбранную партию (чтобы удобно было добавлять следующих)
   playerToAdd.value = { round: playerToAdd.value.round, user: null, role: 'Мирный', points: 0, won: false };
   await fetchAll();
 }
@@ -35,7 +34,6 @@ async function onRemoveClick(player) {
 
 function userName(id) { return users.value.find(u => u.id === id)?.username || id; }
 
-// Красиво выводим название партии: "2026-10-25 — Партия #1"
 function roundLabel(id) {
   const r = rounds.value.find(x => x.id === id);
   if (!r) return id;
