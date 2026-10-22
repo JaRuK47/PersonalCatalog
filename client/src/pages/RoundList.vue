@@ -1,181 +1,110 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import axios from 'axios';
+import useProfileStore from '@/stores/profileStore';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
+const profileStore = useProfileStore();
 const rounds = ref([]);
 const sessions = ref([]);
-const users = ref([]);
-
-const roundToAdd = ref({ session: null, number: 1, start_time: '' });
-
-const playersToAdd = ref([]);
+const roundToAdd = ref({ session: null, number: 1, description: '' });
+const roundToEdit = ref({});
 
 async function fetchAll() {
-  const [r, s, u] = await Promise.all([
-    axios.get('/api/rounds/'),
-    axios.get('/api/sessions/'),
-    axios.get('/api/users/'),
-  ]);
+  const [r, s] = await Promise.all([axios.get('/api/rounds/'), axios.get('/api/sessions/')]);
   rounds.value = r.data;
   sessions.value = s.data;
-  users.value = u.data;
-}
-
-watch(() => roundToAdd.value.session, (newSessionId) => {
-  if (!newSessionId) return;
-  const sessionRounds = rounds.value.filter(r => r.session === newSessionId);
-  if (sessionRounds.length > 0) {
-    const maxNumber = Math.max(...sessionRounds.map(r => r.number));
-    roundToAdd.value.number = maxNumber + 1;
-  } else {
-    roundToAdd.value.number = 1;
-  }
-});
-
-function addPlayerRow() {
-  playersToAdd.value.push({ user: null, role: 'Мирный', points: 0, won: false });
-}
-
-function removePlayerRow(index) {
-  playersToAdd.value.splice(index, 1);
 }
 
 async function onRoundAdd() {
   try {
-    const roundPayload = { ...roundToAdd.value };
-    if (!roundPayload.start_time) roundPayload.start_time = null;
-
-    const roundResponse = await axios.post('/api/rounds/', roundPayload);
-    const newRoundId = roundResponse.data.id;
-
-    if (playersToAdd.value.length > 0) {
-      const playerPromises = playersToAdd.value.map(player => {
-        return axios.post('/api/round-players/', {
-          ...player,
-          round: newRoundId
-        });
-      });
-      await Promise.all(playerPromises);
-    }
-
-    roundToAdd.value = { session: null, number: 1, start_time: '' };
-    playersToAdd.value = [];
+    await axios.post('/api/rounds/', roundToAdd.value);
+    roundToAdd.value = { session: null, number: 1, description: '' };
     await fetchAll();
-    alert('Партия и игроки успешно сохранены!');
-
   } catch (e) {
-    if (e.response && e.response.data) {
-      const errors = e.response.data;
-      if (errors.session || errors.number || errors.non_field_errors) {
-        alert('Ошибка: Партия с таким номером уже существует в этой сессии!');
-      } else {
-        alert('Ошибка валидации: ' + JSON.stringify(errors));
-      }
-    } else {
-      alert('Произошла неизвестная ошибка');
-    }
+    alert('Ошибка: Партия с таким номером уже существует в этой сессии!');
   }
 }
 
-async function onRemoveClick(round) {
-  if (!confirm(`Удалить партию #${round.number}? Все результаты игроков тоже удалятся.`)) return;
-  await axios.delete(`/api/rounds/${round.id}/`);
+function onEditClick(r) { roundToEdit.value = { ...r }; }
+async function onUpdateRound() {
+  try {
+    await axios.put(`/api/rounds/${roundToEdit.value.id}/`, roundToEdit.value);
+    await fetchAll();
+  } catch (e) {
+    alert('Ошибка: Партия с таким номером уже существует!');
+  }
+}
+
+async function onRemoveClick(r) {
+  if(!confirm('Удалить партию?')) return;
+  await axios.delete(`/api/rounds/${r.id}/`);
   await fetchAll();
 }
 
-function sessionLabel(id) {
-  const s = sessions.value.find(x => x.id === id);
-  return s ? `${s.date} ${s.start_time}` : id;
-}
+const groupedRounds = computed(() => {
+  const groups = {};
+  rounds.value.forEach(r => {
+    const s = sessions.value.find(x => x.id === r.session);
+    const label = s ? `${s.date} ${s.start_time}` : 'Без сессии';
+    if (!groups[label]) groups[label] = [];
+    groups[label].push(r);
+  });
+  return groups;
+});
 
 onMounted(fetchAll);
 </script>
 
 <template>
   <h1>Партии</h1>
-
-  <div class="card mb-4 shadow-sm">
-    <div class="card-header bg-primary text-white">
-      Создание новой партии
+  <form v-if="profileStore.isManager" @submit.prevent="onRoundAdd" class="row g-2 mb-4 bg-light p-3 rounded">
+    <div class="col-md-4">
+      <select v-model.number="roundToAdd.session" class="form-select" required>
+        <option disabled :value="null">Сессия</option>
+        <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.date }}</option>
+      </select>
     </div>
-    <div class="card-body">
-      <form @submit.prevent="onRoundAdd">
-        <div class="row g-2 mb-3 align-items-end">
-          <div class="col-md-5">
-            <label class="form-label">Сессия</label>
-            <select v-model.number="roundToAdd.session" class="form-select" required>
-              <option disabled :value="null">Выберите сессию</option>
-              <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.date }} {{ s.start_time }}</option>
-            </select>
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">Номер партии</label>
-            <input v-model.number="roundToAdd.number" type="number" class="form-control" required />
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Время начала (необязательно)</label>
-            <input v-model="roundToAdd.start_time" type="time" class="form-control" />
+    <div class="col-md-2"><input v-model.number="roundToAdd.number" type="number" class="form-control" required /></div>
+    <div class="col-md-4"><input v-model="roundToAdd.description" class="form-control" placeholder="Описание" /></div>
+    <div class="col-md-2"><button class="btn btn-primary w-100">Добавить</button></div>
+  </form>
+
+  <div v-for="(sessionRounds, sessionName) in groupedRounds" :key="sessionName" class="mb-4">
+    <h4 class="border-bottom pb-2">Сессия: {{ sessionName }}</h4>
+    <div class="row">
+      <div class="col-md-3 mb-3" v-for="r in sessionRounds" :key="r.id">
+        <div class="card shadow-sm h-100 border-primary">
+          <div class="card-body text-center">
+            <h5 class="card-title">Партия #{{ r.number }}</h5>
+            <button class="btn btn-sm btn-outline-primary mt-2" @click="router.push('/rounds/' + r.id)">Статистика</button>
+            <div v-if="profileStore.isManager" class="mt-2">
+              <button class="btn btn-sm btn-success me-1" data-bs-toggle="modal" data-bs-target="#editRoundModal" @click="onEditClick(r)">Ред.</button>
+              <button class="btn btn-sm btn-danger" @click="onRemoveClick(r)">Удал.</button>
+            </div>
           </div>
         </div>
-
-        <hr>
-        <h5>Игроки в этой партии</h5>
-
-        <div v-if="playersToAdd.length === 0" class="text-muted mb-2">
-          Пока никто не добавлен. Нажмите кнопку ниже.
-        </div>
-
-        <div v-for="(p, index) in playersToAdd" :key="index" class="row g-2 mb-2 align-items-center">
-          <div class="col-md-3">
-            <select v-model.number="p.user" class="form-select" required>
-              <option disabled :value="null">Игрок</option>
-              <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }}</option>
-            </select>
-          </div>
-          <div class="col-md-3">
-            <input v-model="p.role" class="form-control" placeholder="Роль (Мафия, Шериф)" required />
-          </div>
-          <div class="col-md-2">
-            <input v-model.number="p.points" type="number" class="form-control" placeholder="Очки" />
-          </div>
-          <div class="col-md-2 form-check ms-2">
-            <input v-model="p.won" class="form-check-input" type="checkbox" :id="'won_' + index">
-            <label class="form-check-label" :for="'won_' + index">Победа</label>
-          </div>
-          <div class="col-md-1">
-            <button type="button" class="btn btn-outline-danger btn-sm w-100" @click="removePlayerRow(index)">
-              ✕
-            </button>
-          </div>
-        </div>
-
-        <div class="mt-3">
-          <button type="button" class="btn btn-outline-secondary me-2" @click="addPlayerRow">
-            + Добавить игрока
-          </button>
-          <button type="submit" class="btn btn-success">
-            Сохранить партию
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
 
-  <h3>Сыгранные партии</h3>
-  <table class="table table-striped">
-    <thead>
-      <tr><th>ID</th><th>Сессия</th><th>Номер партии</th><th>Время</th><th></th></tr>
-    </thead>
-    <tbody>
-      <tr v-for="r in rounds" :key="r.id">
-        <td>{{ r.id }}</td>
-        <td>{{ sessionLabel(r.session) }}</td>
-        <td><b>Партия #{{ r.number }}</b></td>
-        <td>{{ r.start_time || '—' }}</td>
-        <td>
-          <button class="btn btn-sm btn-danger" @click="onRemoveClick(r)">Удалить</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="modal fade" id="editRoundModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Редактировать партию</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <select v-model.number="roundToEdit.session" class="form-select mb-2">
+            <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.date }}</option>
+          </select>
+          <input v-model.number="roundToEdit.number" type="number" class="form-control mb-2" />
+          <textarea v-model="roundToEdit.description" class="form-control" placeholder="Описание"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button class="btn btn-primary" data-bs-dismiss="modal" @click="onUpdateRound">Сохранить</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>

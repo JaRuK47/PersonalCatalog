@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="8597d0f7-3a7d-41f5-8032-59251221d7f5" name="Changes" comment="create task1 for vue">
-      <change afterPath="$PROJECT_DIR$/client/src/components/NavBar.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/pages/LoginPage.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/stores/profileStore.js" afterDir="false" />
+    <list default="true" id="8597d0f7-3a7d-41f5-8032-59251221d7f5" name="Changes" comment="refactor code">
+      <change afterPath="$PROJECT_DIR$/client/src/pages/AboutPage.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/pages/MyBookings.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/pages/RoundDetail.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/pages/RulesPage.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/BookingList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/BookingList.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/RoundList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/RoundList.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/RoundPlayerList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/RoundPlayerList.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/SessionList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/SessionList.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/VenueList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/VenueList.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/venue/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/venue/api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/components/NavBar.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/components/NavBar.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/BookingList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/BookingList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/RoundList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/RoundList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/RoundPlayerList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/RoundPlayerList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/SessionList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/SessionList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/VenueList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/VenueList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/stores/profileStore.js" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/stores/profileStore.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/venue/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/venue/serializers.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -256,8 +258,8 @@
     </configuration>
     <list>
       <item itemvalue="Django Server.server" />
-      <item itemvalue="Django tests.Test: venue.tests" />
       <item itemvalue="Django tests.Test: venue.tests.RoundPlayerViewSetTestCase.test_create_round_player" />
+      <item itemvalue="Django tests.Test: venue.tests" />
       <item itemvalue="npm.dev" />
       <item itemvalue="Python.tests" />
     </list>
@@ -299,7 +301,9 @@
       <workItem from="1792197379937" duration="3393000" />
       <workItem from="1792261804154" duration="3233000" />
       <workItem from="1792417866715" duration="171000" />
-      <workItem from="1792548434266" duration="4849000" />
+      <workItem from="1792548434266" duration="4882000" />
+      <workItem from="1792657476039" duration="601000" />
+      <workItem from="1792665683175" duration="3775000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -365,7 +369,15 @@
       <option name="project" value="LOCAL" />
       <updated>1792265233936</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="refactor code">
+      <option name="closed" value="true" />
+      <created>1792553614787</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1792553614787</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -391,7 +403,8 @@
     <MESSAGE value="create test" />
     <MESSAGE value="create vue" />
     <MESSAGE value="create task1 for vue" />
-    <option name="LAST_COMMIT_MESSAGE" value="create task1 for vue" />
+    <MESSAGE value="refactor code" />
+    <option name="LAST_COMMIT_MESSAGE" value="refactor code" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/PersonalCatalog$Test__venue_tests.coverage" NAME="Test: venue.tests Coverage Results" MODIFIED="1791340141571" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />

@@ -1,107 +1,68 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import axios from 'axios';
+import useProfileStore from '@/stores/profileStore';
 
+const profileStore = useProfileStore();
 const players = ref([]);
 const rounds = ref([]);
 const users = ref([]);
-const sessions = ref([]);
 const playerToAdd = ref({ round: null, user: null, role: 'Мирный', points: 0, won: false });
 
 async function fetchAll() {
-  const [p, r, u, s] = await Promise.all([
+  const [p, r, u] = await Promise.all([
     axios.get('/api/round-players/'),
     axios.get('/api/rounds/'),
     axios.get('/api/users/'),
-    axios.get('/api/sessions/'),
   ]);
-  players.value = p.data;
-  rounds.value = r.data;
-  users.value = u.data;
-  sessions.value = s.data;
+  players.value = p.data; rounds.value = r.data; users.value = u.data;
 }
 
 async function onPlayerAdd() {
   await axios.post('/api/round-players/', playerToAdd.value);
-  playerToAdd.value = { round: playerToAdd.value.round, user: null, role: 'Мирный', points: 0, won: false };
-  await fetchAll();
-}
-
-async function onRemoveClick(player) {
-  await axios.delete(`/api/round-players/${player.id}/`);
+  playerToAdd.value = { ...playerToAdd.value, user: null, role: 'Мирный', points: 0, won: false };
   await fetchAll();
 }
 
 function userName(id) { return users.value.find(u => u.id === id)?.username || id; }
-
-function roundLabel(id) {
-  const r = rounds.value.find(x => x.id === id);
-  if (!r) return id;
-  const s = sessions.value.find(x => x.id === r.session);
-  const sessionDate = s ? s.date : 'Неизвестная сессия';
-  return `${sessionDate} — Партия #${r.number}`;
-}
+function roundLabel(id) { const r = rounds.value.find(x => x.id === id); return r ? `Партия #${r.number}` : id; }
 
 onMounted(fetchAll);
 </script>
 
 <template>
-  <h1>Результаты партий</h1>
-  <p class="text-muted">Здесь вы вносите, кто играл в партии и с какими результатами.</p>
+  <div v-if="profileStore.isManager">
+    <h1>Результаты партий</h1>
 
-  <form @submit.prevent="onPlayerAdd" class="row g-2 mb-4 bg-light p-3 rounded">
-    <div class="col-md-4">
-      <label class="form-label">Партия</label>
-      <select v-model.number="playerToAdd.round" class="form-select" required>
-        <option disabled :value="null">Выберите партию</option>
-        <option v-for="r in rounds" :key="r.id" :value="r.id">{{ roundLabel(r.id) }}</option>
-      </select>
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Игрок</label>
-      <select v-model.number="playerToAdd.user" class="form-select" required>
-        <option disabled :value="null">Кто играл?</option>
-        <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }}</option>
-      </select>
-    </div>
-    <div class="col-md-2">
-      <label class="form-label">Роль</label>
-      <input v-model="playerToAdd.role" class="form-control" placeholder="Мафия, Шериф..." required />
-    </div>
-    <div class="col-md-1">
-      <label class="form-label">Очки</label>
-      <input v-model.number="playerToAdd.points" type="number" class="form-control" />
-    </div>
-    <div class="col-md-1 d-flex align-items-end pb-2">
-      <div class="form-check">
-        <input v-model="playerToAdd.won" class="form-check-input" type="checkbox" id="wonCheck">
-        <label class="form-check-label" for="wonCheck">Победа</label>
+    <form @submit.prevent="onPlayerAdd" class="row g-2 mb-4 bg-light p-3 rounded">
+      <div class="col-md-4">
+        <select v-model.number="playerToAdd.round" class="form-select" required>
+          <option disabled :value="null">Выберите партию</option>
+          <option v-for="r in rounds" :key="r.id" :value="r.id">{{ roundLabel(r.id) }}</option>
+        </select>
       </div>
-    </div>
-    <div class="col-md-1 d-flex align-items-end">
-      <button class="btn btn-primary w-100">Добавить</button>
-    </div>
-  </form>
+      <div class="col-md-3">
+        <select v-model.number="playerToAdd.user" class="form-select" required>
+          <option disabled :value="null">Игрок</option>
+          <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }}</option>
+        </select>
+      </div>
+      <div class="col-md-2"><input v-model="playerToAdd.role" class="form-control" required /></div>
+      <div class="col-md-1"><input v-model.number="playerToAdd.points" type="number" class="form-control" /></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100">Добавить</button></div>
+    </form>
 
-  <table class="table table-striped">
-    <thead>
-      <tr><th>ID</th><th>Партия</th><th>Игрок</th><th>Роль</th><th>Очки</th><th>Победа</th><th></th></tr>
-    </thead>
-    <tbody>
-      <tr v-for="p in players" :key="p.id">
-        <td>{{ p.id }}</td>
-        <td>{{ roundLabel(p.round) }}</td>
-        <td>{{ userName(p.user) }}</td>
-        <td>{{ p.role }}</td>
-        <td>{{ p.points }}</td>
-        <td>
-          <span v-if="p.won" class="badge bg-success">Да</span>
-          <span v-else class="badge bg-secondary">Нет</span>
-        </td>
-        <td>
-          <button class="btn btn-sm btn-danger" @click="onRemoveClick(p)">Удалить</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+    <table class="table table-striped">
+      <thead><tr><th>Партия</th><th>Игрок</th><th>Роль</th><th>Очки</th><th>Победа</th></tr></thead>
+      <tbody>
+        <tr v-for="p in players" :key="p.id">
+          <td>{{ roundLabel(p.round) }}</td>
+          <td>{{ userName(p.user) }}</td>
+          <td>{{ p.role }}</td>
+          <td>{{ p.points }}</td>
+          <td>{{ p.won ? 'Да' : 'Нет' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </template>
