@@ -6,6 +6,7 @@ import Cookies from "js-cookie";
 const useProfileStore = defineStore('profileStore', () => {
     const isAuthenticated = ref(false);
     const userName = ref(null);
+    const userId = ref(null);
     const role = ref(null);
 
     const isAdmin = computed(() => role.value === 'Администратор');
@@ -16,6 +17,7 @@ const useProfileStore = defineStore('profileStore', () => {
         const r = await axios.get("/api/profile/me/");
         isAuthenticated.value = r.data.is_authenticated;
         userName.value = r.data.is_authenticated ? r.data.username : null;
+        userId.value = r.data.is_authenticated ? r.data.id : null;
         role.value = r.data.is_authenticated ? r.data.role : null;
     }
 
@@ -29,7 +31,7 @@ const useProfileStore = defineStore('profileStore', () => {
         await fetchMe();
     }
 
-    return { isAuthenticated, userName, role, isAdmin, isManager, fetchMe, login, logout };
+    return { isAuthenticated, userName, userId, role, isAdmin, isManager, fetchMe, login, logout };
 });
 
 export default useProfileStore;

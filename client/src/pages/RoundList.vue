@@ -10,7 +10,7 @@ const rounds = ref([]);
 const sessions = ref([]);
 const users = ref([]);
 
-const roundToAdd = ref({ session: null, number: 1, host: null, description: '' });
+const roundToAdd = ref({ session: null, number: 1, host: null, game_mode: 'Спортивная мафия', description: '' });
 const roundToEdit = ref({});
 
 async function fetchAll() {
@@ -27,23 +27,20 @@ async function fetchAll() {
 async function onRoundAdd() {
   try {
     await axios.post('/api/rounds/', roundToAdd.value);
-    roundToAdd.value = { session: null, number: 1, host: null, description: '' };
+    roundToAdd.value = { session: null, number: 1, host: null, game_mode: 'Спортивная мафия', description: '' };
     await fetchAll();
   } catch (e) {
-    alert('Ошибка: Партия с таким номером уже существует в этой сессии!');
+    alert('Ошибка! Партия с таким номером уже существует в этой сессии.');
   }
 }
 
-function onEditClick(r) {
-  roundToEdit.value = { ...r };
-}
-
+function onEditClick(r) { roundToEdit.value = { ...r }; }
 async function onUpdateRound() {
   try {
     await axios.put(`/api/rounds/${roundToEdit.value.id}/`, roundToEdit.value);
     await fetchAll();
   } catch (e) {
-    alert('Ошибка: Партия с таким номером уже существует!');
+    alert('Ошибка! Партия с таким номером уже существует.');
   }
 }
 
@@ -61,7 +58,6 @@ const groupedRounds = computed(() => {
     if (!groups[label]) groups[label] = [];
     groups[label].push(r);
   });
-
   const result = {};
   Object.keys(groups).sort().reverse().forEach(key => {
     result[key] = groups[key].sort((a, b) => a.number - b.number);
@@ -69,9 +65,7 @@ const groupedRounds = computed(() => {
   return result;
 });
 
-function userName(id) {
-  return users.value.find(u => u.id === id)?.username || 'Неизвестен';
-}
+function userName(id) { return users.value.find(u => u.id === id)?.username || 'Неизвестен'; }
 
 onMounted(fetchAll);
 </script>
@@ -79,40 +73,48 @@ onMounted(fetchAll);
 <template>
   <h1>Партии</h1>
 
-  <form v-if="profileStore.isManager" @submit.prevent="onRoundAdd" class="row g-2 mb-4 bg-light p-3 rounded">
+  <form v-if="profileStore.isManager" @submit.prevent="onRoundAdd" class="row g-2 mb-4 bg-light p-3 rounded shadow-sm">
     <div class="col-md-3">
+      <label class="form-label small mb-0">Сессия</label>
       <select v-model.number="roundToAdd.session" class="form-select" required>
-        <option disabled :value="null">Сессия</option>
+        <option disabled :value="null">Выбрать</option>
         <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.date }} ({{ s.title }})</option>
       </select>
     </div>
-    <div class="col-md-2">
-      <input v-model.number="roundToAdd.number" type="number" class="form-control" placeholder="Номер" required />
+    <div class="col-md-1">
+      <label class="form-label small mb-0">Номер</label>
+      <input v-model.number="roundToAdd.number" type="number" class="form-control" required />
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
+      <label class="form-label small mb-0">Ведущий</label>
       <select v-model.number="roundToAdd.host" class="form-select" required>
-        <option disabled :value="null">Ведущий</option>
+        <option disabled :value="null">Выбрать</option>
         <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }}</option>
       </select>
     </div>
-    <div class="col-md-3">
-      <input v-model="roundToAdd.description" class="form-control" placeholder="Описание" />
+    <div class="col-md-2">
+      <label class="form-label small mb-0">Режим игры</label>
+      <input v-model="roundToAdd.game_mode" class="form-control" required />
     </div>
-    <div class="col-md-1">
+    <div class="col-md-3">
+      <label class="form-label small mb-0">Описание</label>
+      <input v-model="roundToAdd.description" class="form-control" />
+    </div>
+    <div class="col-md-1 d-flex align-items-end">
       <button class="btn btn-primary w-100">Доб.</button>
     </div>
   </form>
 
-  <div v-for="(sessionRounds, sessionName) in groupedRounds" :key="sessionName" class="mb-4">
-    <h4 class="border-bottom pb-2">Сессия: {{ sessionName }}</h4>
+  <div v-for="(sessionRounds, sessionName) in groupedRounds" :key="sessionName" class="mb-5">
+    <h4 class="border-bottom pb-2 text-secondary">Сессия: {{ sessionName }}</h4>
     <div class="row">
       <div class="col-md-3 mb-3" v-for="r in sessionRounds" :key="r.id">
         <div class="card shadow-sm h-100 border-primary">
-          <div class="card-body text-center">
+          <div class="card-body text-center d-flex flex-column">
             <h5 class="card-title">Партия #{{ r.number }}</h5>
-            <p class="card-text text-muted small mb-2">Ведущий: {{ userName(r.host) }}</p>
-            <button class="btn btn-sm btn-outline-primary mt-1 w-100" @click="router.push('/rounds/' + r.id)">Статистика</button>
-
+            <p class="card-text small mb-1">Режим: <b>{{ r.game_mode }}</b></p>
+            <p class="card-text text-muted small mb-3">Ведущий: {{ userName(r.host) }}</p>
+            <button class="btn btn-sm btn-outline-primary mt-auto" @click="router.push('/rounds/' + r.id)">Статистика</button>
             <div v-if="profileStore.isManager" class="mt-2 d-flex justify-content-between">
               <button class="btn btn-sm btn-success w-50 me-1" data-bs-toggle="modal" data-bs-target="#editRoundModal" @click="onEditClick(r)">Ред.</button>
               <button class="btn btn-sm btn-danger w-50" @click="onRemoveClick(r)">Удал.</button>
@@ -126,10 +128,7 @@ onMounted(fetchAll);
   <div class="modal fade" id="editRoundModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Редактировать партию</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
+        <div class="modal-header"><h5 class="modal-title">Редактировать партию</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
           <select v-model.number="roundToEdit.session" class="form-select mb-2">
             <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.date }} ({{ s.title }})</option>
@@ -139,6 +138,7 @@ onMounted(fetchAll);
             <option :value="null">Без ведущего</option>
             <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }}</option>
           </select>
+          <input v-model="roundToEdit.game_mode" class="form-control mb-2" placeholder="Режим игры" />
           <textarea v-model="roundToEdit.description" class="form-control" placeholder="Описание"></textarea>
         </div>
         <div class="modal-footer">

@@ -13,7 +13,6 @@ const allBookings = ref([]);
 
 const sessionToAdd = ref({ venue: null, date: '', start_time: '', title: 'Игра', game_mode: 'Спортивная мафия', description: '', max_players: 11 });
 const sessionToEdit = ref({});
-
 const showBookingModal = ref(false);
 const selectedSession = ref(null);
 const currentSessionBookings = ref([]);
@@ -23,10 +22,8 @@ async function fetchAll() {
     axios.get('/api/sessions/'), axios.get('/api/venues/'),
     axios.get('/api/bookings/'), axios.get('/api/users/')
   ]);
-  sessions.value = s.data;
-  venues.value = v.data;
-  allBookings.value = b.data;
-  users.value = u.data;
+  sessions.value = s.data; venues.value = v.data;
+  allBookings.value = b.data; users.value = u.data;
 }
 
 async function onSessionAdd() {
@@ -41,26 +38,34 @@ async function onUpdateSession() {
   await fetchAll();
 }
 
+async function onRemoveClick(s) {
+  if(!confirm('Удалить сессию полностью?')) return;
+  await axios.delete(`/api/sessions/${s.id}/`);
+  await fetchAll();
+}
+
 async function cancelSession(s) {
-  if(!confirm('Отменить сессию? Все брони останутся, но получат статус отмененных.')) return;
+  if(!confirm('Отменить сессию?')) return;
   await axios.patch(`/api/sessions/${s.id}/`, { is_cancelled: true });
   await fetchAll();
 }
 
 function handleBookClick(s) {
-  if (!profileStore.isAuthenticated) {
-    router.push('/login'); return;
-  }
+  if (!profileStore.isAuthenticated) { router.push('/login'); return; }
   selectedSession.value = s;
-  currentSessionBookings.value = allBookings.value.filter(b => b.session === s.id && b.status === 'active');
+  currentSessionBookings.value = allBookings.value.filter(b => b.session === s.id && (b.status === 'active' || b.status === 'attended'));
   showBookingModal.value = true;
 }
 
 function myBooking(sessionId) {
-  return allBookings.value.find(b => b.session === sessionId && b.user === profileStore.userId && b.status === 'active');
+  return allBookings.value.find(b => b.session === sessionId && b.user === profileStore.userId && (b.status === 'active' || b.status === 'attended'));
 }
 
 async function bookPlace() {
+  if (!profileStore.userId) {
+    alert('Ошибка: вы не авторизованы или данные профиля не загрузились. Обновите страницу.');
+    return;
+  }
   await axios.post('/api/bookings/', { user: profileStore.userId, session: selectedSession.value.id, status: 'active' });
   alert('Вы успешно забронировали место!');
   await fetchAll();
@@ -78,17 +83,18 @@ async function cancelBooking() {
 }
 
 const sortedSessions = computed(() => {
-  return sessions.value
-    .slice()
-    .sort((a, b) => {
+  return sessions.value.slice().sort((a, b) => {
+    if (!profileStore.isManager) {
       if (a.is_cancelled && !b.is_cancelled) return -1;
       if (!a.is_cancelled && b.is_cancelled) return 1;
-      return new Date(`${b.date}T${b.start_time}`) - new Date(`${a.date}T${a.start_time}`);
-    });
+    }
+    return new Date(`${b.date}T${b.start_time}`) - new Date(`${a.date}T${a.start_time}`);
+  });
 });
 
 function venueName(id) { return venues.value.find(v => v.id === id)?.name || '—'; }
 function userName(id) { return users.value.find(u => u.id === id)?.username || id; }
+function isPast(s) { return new Date(`${s.date}T${s.start_time}`) < new Date(); }
 
 onMounted(fetchAll);
 </script>
@@ -96,7 +102,7 @@ onMounted(fetchAll);
 <template>
   <h1>Расписание сессий</h1>
 
-  <form v-if="profileStore.isManager" @submit.prevent="onSessionAdd" class="row g-2 mb-4 bg-light p-3 rounded">
+  <form v-if="profileStore.isManager" @submit.prevent="onSessionAdd" class="row g-2 mb-4 bg-light p-3 rounded shadow-sm">
     <div class="col-md-3">
       <select v-model.number="sessionToAdd.venue" class="form-select" required>
         <option disabled :value="null">Место</option>
@@ -112,19 +118,20 @@ onMounted(fetchAll);
   </form>
 
   <div v-if="profileStore.isManager">
-    <table class="table table-hover align-middle">
-      <thead><tr><th>Дата</th><th>Игра</th><th>Место</th><th>Статус</th><th>Действия</th></tr></thead>
+    <table class="table table-hover align-middle shadow-sm">
+      <thead class="table-dark"><tr><th>Дата</th><th>Игра</th><th>Место</th><th>Статус</th><th>Действия</th></tr></thead>
       <tbody>
         <tr v-for="s in sortedSessions" :key="s.id" :class="{'table-danger': s.is_cancelled}">
           <td>{{ s.date }} в {{ s.start_time }}</td>
-          <td><b>{{ s.title }}</b> <br><small>{{ s.game_mode }}</small></td>
+          <td><b>{{ s.title }}</b> <br><small class="text-muted">{{ s.game_mode }}</small></td>
           <td>{{ venueName(s.venue) }}</td>
           <td>
             <span class="badge" :class="{'bg-danger': s.status === 'Отменена', 'bg-success': s.status === 'Идёт набор', 'bg-warning text-dark': s.status === 'Активно', 'bg-secondary': s.status === 'Завершена'}">{{ s.status }}</span>
           </td>
           <td>
             <button class="btn btn-sm btn-success me-1" data-bs-toggle="modal" data-bs-target="#editSessionModal" @click="onEditClick(s)">Ред.</button>
-            <button v-if="!s.is_cancelled" class="btn btn-sm btn-danger" @click="cancelSession(s)">Отменить</button>
+            <button v-if="!s.is_cancelled && !isPast(s)" class="btn btn-sm btn-warning me-1" @click="cancelSession(s)">Отменить</button>
+            <button class="btn btn-sm btn-danger" @click="onRemoveClick(s)">Удалить</button>
           </td>
         </tr>
       </tbody>
@@ -133,9 +140,9 @@ onMounted(fetchAll);
 
   <div v-else class="row">
     <div class="col-md-4 mb-3" v-for="s in sortedSessions" :key="s.id">
-      <div class="card shadow-sm h-100" :class="{'border-danger': s.is_cancelled}">
+      <div class="card shadow-sm h-100" :class="{'border-danger border-2': s.is_cancelled}">
         <div class="card-body">
-          <h4 class="card-title">{{ s.title }} <span v-if="s.is_cancelled" class="badge bg-danger">Отменена</span></h4>
+          <h4 class="card-title">{{ s.title }} <span v-if="s.is_cancelled" class="badge bg-danger fs-6">Отменена</span></h4>
           <h6 class="card-subtitle mb-2 text-primary">{{ s.game_mode }}</h6>
           <p class="card-text text-muted mb-1"><b>{{ s.date }}</b> в {{ s.start_time }}</p>
           <p class="card-text mb-2">{{ venueName(s.venue) }}</p>
@@ -150,21 +157,20 @@ onMounted(fetchAll);
     </div>
   </div>
 
-  <div v-if="showBookingModal" class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+  <div v-if="showBookingModal" class="modal fade show d-block" style="background: rgba(0,0,0,0.6);" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content" v-if="selectedSession">
         <div class="modal-header">
           <h5 class="modal-title">{{ selectedSession.title }} | {{ selectedSession.date }}</h5>
           <button type="button" class="btn-close" @click="showBookingModal = false"></button>
         </div>
         <div class="modal-body">
-          <h5 v-if="selectedSession.is_cancelled" class="text-danger">Внимание! Эта игра отменена.</h5>
           <div class="mb-3">
             <h6>Режим:</h6> <p>{{ selectedSession.game_mode }}</p>
             <h6>Описание:</h6> <p>{{ selectedSession.description }}</p>
             <h6>Локация:</h6> <p>{{ venueName(selectedSession.venue) }}</p>
           </div>
-          <h5 class="mt-4">Список игроков ({{ currentSessionBookings.length }}):</h5>
+          <h5 class="mt-4 border-top pt-3">Список игроков ({{ currentSessionBookings.length }}):</h5>
           <ul class="list-group">
             <li class="list-group-item" v-for="b in currentSessionBookings" :key="b.id">{{ userName(b.user) }}</li>
             <li class="list-group-item text-muted" v-if="currentSessionBookings.length === 0">Пока никого нет</li>
@@ -172,8 +178,8 @@ onMounted(fetchAll);
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" @click="showBookingModal = false">Закрыть</button>
-          <button v-if="!myBooking(selectedSession.id) && !selectedSession.is_cancelled" class="btn btn-success" @click="bookPlace">Забронировать</button>
-          <button v-else-if="myBooking(selectedSession.id) && !selectedSession.is_cancelled" class="btn btn-danger" @click="cancelBooking">Отменить мою бронь</button>
+          <button v-if="!myBooking(selectedSession.id)" class="btn btn-success" @click="bookPlace">Забронировать</button>
+          <button v-else class="btn btn-danger" @click="cancelBooking">Отменить мою бронь</button>
         </div>
       </div>
     </div>

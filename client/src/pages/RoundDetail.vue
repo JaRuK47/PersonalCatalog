@@ -27,9 +27,19 @@ async function fetchData() {
 }
 
 async function addPlayer() {
-  await axios.post('/api/round-players/', { ...newPlayer.value, round: route.params.id });
-  newPlayer.value = { user: null, role: 'Мирный', points: 0.0, won: false, description: '' };
-  await fetchData();
+  const isAlreadyAdded = players.value.some(p => p.user === newPlayer.value.user);
+  if (isAlreadyAdded) {
+    alert('Этот игрок уже добавлен в партию!');
+    return;
+  }
+
+  try {
+    await axios.post('/api/round-players/', { ...newPlayer.value, round: route.params.id });
+    newPlayer.value = { user: null, role: 'Мирный', points: 0.0, won: false, description: '' };
+    await fetchData();
+  } catch (e) {
+    alert('Ошибка при добавлении игрока');
+  }
 }
 
 function onEditClick(p) { playerToEdit.value = { ...p }; }
@@ -53,9 +63,10 @@ onMounted(fetchData);
   <div>
     <button @click="router.push('/rounds')" class="btn btn-sm btn-outline-secondary mb-3">← Назад к партиям</button>
     <h1>Партия #{{ roundInfo.number }}</h1>
-    <p class="text-muted">{{ roundInfo.description }}</p>
+    <h5 class="text-muted">{{ roundInfo.game_mode }}</h5>
+    <p>{{ roundInfo.description }}</p>
 
-    <form v-if="profileStore.isManager" @submit.prevent="addPlayer" class="row g-2 mb-4 bg-light p-3 rounded">
+    <form v-if="profileStore.isManager" @submit.prevent="addPlayer" class="row g-2 mb-4 bg-light p-3 rounded shadow-sm">
       <div class="col-md-3">
         <select v-model.number="newPlayer.user" class="form-select" required>
           <option disabled :value="null">Игрок</option>
@@ -63,9 +74,9 @@ onMounted(fetchData);
         </select>
       </div>
       <div class="col-md-2"><input v-model="newPlayer.role" class="form-control" placeholder="Роль" required /></div>
-      <div class="col-md-2"><input v-model.number="newPlayer.points" type="number" step="0.1" class="form-control" placeholder="Очки (0.5)" /></div>
+      <div class="col-md-2"><input v-model.number="newPlayer.points" type="number" step="0.1" class="form-control" placeholder="Очки" /></div>
       <div class="col-md-3"><input v-model="newPlayer.description" class="form-control" placeholder="За что баллы?" /></div>
-      <div class="col-md-1 form-check ms-2 mt-2">
+      <div class="col-md-1 form-check mt-2">
         <input v-model="newPlayer.won" class="form-check-input" type="checkbox" id="newWon">
         <label class="form-check-label" for="newWon">Победа</label>
       </div>
@@ -86,7 +97,6 @@ onMounted(fetchData);
                 <span class="badge bg-primary fs-6">{{ p.points }} очков</span>
                 <span v-if="p.won" class="badge bg-success ms-2">Победа</span>
                 <span v-else class="badge bg-secondary ms-2">Проигрыш</span>
-
                 <div v-if="profileStore.isManager" class="mt-2">
                   <button class="btn btn-sm btn-success me-1" data-bs-toggle="modal" data-bs-target="#editPlayerModal" @click="onEditClick(p)">Ред.</button>
                   <button class="btn btn-sm btn-danger" @click="removePlayer(p.id)">Удал.</button>
