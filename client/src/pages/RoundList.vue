@@ -8,26 +8,36 @@ const router = useRouter();
 const profileStore = useProfileStore();
 const rounds = ref([]);
 const sessions = ref([]);
-const roundToAdd = ref({ session: null, number: 1, description: '' });
+const users = ref([]);
+
+const roundToAdd = ref({ session: null, number: 1, host: null, description: '' });
 const roundToEdit = ref({});
 
 async function fetchAll() {
-  const [r, s] = await Promise.all([axios.get('/api/rounds/'), axios.get('/api/sessions/')]);
+  const [r, s, u] = await Promise.all([
+    axios.get('/api/rounds/'),
+    axios.get('/api/sessions/'),
+    axios.get('/api/users/')
+  ]);
   rounds.value = r.data;
   sessions.value = s.data;
+  users.value = u.data;
 }
 
 async function onRoundAdd() {
   try {
     await axios.post('/api/rounds/', roundToAdd.value);
-    roundToAdd.value = { session: null, number: 1, description: '' };
+    roundToAdd.value = { session: null, number: 1, host: null, description: '' };
     await fetchAll();
   } catch (e) {
     alert('Ошибка: Партия с таким номером уже существует в этой сессии!');
   }
 }
 
-function onEditClick(r) { roundToEdit.value = { ...r }; }
+function onEditClick(r) {
+  roundToEdit.value = { ...r };
+}
+
 async function onUpdateRound() {
   try {
     await axios.put(`/api/rounds/${roundToEdit.value.id}/`, roundToEdit.value);
@@ -47,28 +57,50 @@ const groupedRounds = computed(() => {
   const groups = {};
   rounds.value.forEach(r => {
     const s = sessions.value.find(x => x.id === r.session);
-    const label = s ? `${s.date} ${s.start_time}` : 'Без сессии';
+    const label = s ? `${s.date} ${s.start_time} (${s.title})` : 'Без сессии';
     if (!groups[label]) groups[label] = [];
     groups[label].push(r);
   });
-  return groups;
+
+  const result = {};
+  Object.keys(groups).sort().reverse().forEach(key => {
+    result[key] = groups[key].sort((a, b) => a.number - b.number);
+  });
+  return result;
 });
+
+function userName(id) {
+  return users.value.find(u => u.id === id)?.username || 'Неизвестен';
+}
 
 onMounted(fetchAll);
 </script>
 
 <template>
   <h1>Партии</h1>
+
   <form v-if="profileStore.isManager" @submit.prevent="onRoundAdd" class="row g-2 mb-4 bg-light p-3 rounded">
-    <div class="col-md-4">
+    <div class="col-md-3">
       <select v-model.number="roundToAdd.session" class="form-select" required>
         <option disabled :value="null">Сессия</option>
-        <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.date }}</option>
+        <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.date }} ({{ s.title }})</option>
       </select>
     </div>
-    <div class="col-md-2"><input v-model.number="roundToAdd.number" type="number" class="form-control" required /></div>
-    <div class="col-md-4"><input v-model="roundToAdd.description" class="form-control" placeholder="Описание" /></div>
-    <div class="col-md-2"><button class="btn btn-primary w-100">Добавить</button></div>
+    <div class="col-md-2">
+      <input v-model.number="roundToAdd.number" type="number" class="form-control" placeholder="Номер" required />
+    </div>
+    <div class="col-md-3">
+      <select v-model.number="roundToAdd.host" class="form-select" required>
+        <option disabled :value="null">Ведущий</option>
+        <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }}</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <input v-model="roundToAdd.description" class="form-control" placeholder="Описание" />
+    </div>
+    <div class="col-md-1">
+      <button class="btn btn-primary w-100">Доб.</button>
+    </div>
   </form>
 
   <div v-for="(sessionRounds, sessionName) in groupedRounds" :key="sessionName" class="mb-4">
@@ -78,10 +110,12 @@ onMounted(fetchAll);
         <div class="card shadow-sm h-100 border-primary">
           <div class="card-body text-center">
             <h5 class="card-title">Партия #{{ r.number }}</h5>
-            <button class="btn btn-sm btn-outline-primary mt-2" @click="router.push('/rounds/' + r.id)">Статистика</button>
-            <div v-if="profileStore.isManager" class="mt-2">
-              <button class="btn btn-sm btn-success me-1" data-bs-toggle="modal" data-bs-target="#editRoundModal" @click="onEditClick(r)">Ред.</button>
-              <button class="btn btn-sm btn-danger" @click="onRemoveClick(r)">Удал.</button>
+            <p class="card-text text-muted small mb-2">Ведущий: {{ userName(r.host) }}</p>
+            <button class="btn btn-sm btn-outline-primary mt-1 w-100" @click="router.push('/rounds/' + r.id)">Статистика</button>
+
+            <div v-if="profileStore.isManager" class="mt-2 d-flex justify-content-between">
+              <button class="btn btn-sm btn-success w-50 me-1" data-bs-toggle="modal" data-bs-target="#editRoundModal" @click="onEditClick(r)">Ред.</button>
+              <button class="btn btn-sm btn-danger w-50" @click="onRemoveClick(r)">Удал.</button>
             </div>
           </div>
         </div>
@@ -92,12 +126,19 @@ onMounted(fetchAll);
   <div class="modal fade" id="editRoundModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Редактировать партию</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-header">
+          <h5 class="modal-title">Редактировать партию</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
         <div class="modal-body">
           <select v-model.number="roundToEdit.session" class="form-select mb-2">
-            <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.date }}</option>
+            <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.date }} ({{ s.title }})</option>
           </select>
           <input v-model.number="roundToEdit.number" type="number" class="form-control mb-2" />
+          <select v-model.number="roundToEdit.host" class="form-select mb-2">
+            <option :value="null">Без ведущего</option>
+            <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }}</option>
+          </select>
           <textarea v-model="roundToEdit.description" class="form-control" placeholder="Описание"></textarea>
         </div>
         <div class="modal-footer">

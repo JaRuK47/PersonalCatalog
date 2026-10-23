@@ -19,45 +19,34 @@ class VenueSerializer(serializers.ModelSerializer):
 
 class SessionSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
-
     class Meta:
         model = Session
         fields = '__all__'
-
     def get_status(self, obj):
+        if obj.is_cancelled:
+            return "Отменена"
         if not obj.date or not obj.start_time: return "Идёт набор"
         start = timezone.make_aware(datetime.combine(obj.date, obj.start_time), timezone.get_current_timezone())
         now = timezone.now()
-        if now < start:
-            return "Идёт набор"
-        elif start <= now < start + timedelta(hours=5):
-            return "Активно"
-        else:
-            return "Завершена"
+        if now < start: return "Идёт набор"
+        elif start <= now < start + timedelta(hours=5): return "Активно"
+        else: return "Завершена"
 
 
 class BookingSerializer(serializers.ModelSerializer):
-    status = serializers.SerializerMethodField()
+    status_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
         fields = '__all__'
 
-    def get_status(self, obj):
-        if obj.status == 'cancelled':
-            return "Отменено"
-        if obj.status == 'no_show':
-            return "Неявка"
-
-        if not obj.session.date or not obj.session.start_time:
-            return "Ожидание"
-
+    def get_status_display(self, obj):
+        if obj.status == 'cancelled': return "Отменено"
+        if obj.status == 'no_show': return "Неявка"
+        if not obj.session.date or not obj.session.start_time: return "Ожидание"
         end_time = timezone.make_aware(datetime.combine(obj.session.date, obj.session.start_time),
                                        timezone.get_current_timezone()) + timedelta(hours=5)
-        now = timezone.now()
-
-        if now > end_time:
-            return "Явился"
+        if timezone.now() > end_time: return "Явился"
         return "Активно"
 
 

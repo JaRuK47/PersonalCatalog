@@ -24,6 +24,9 @@ async function onLogoutButtonClick() { await profileStore.logout(); }
                     <li class="nav-item" v-if="isAuthenticated && !isManager">
                         <router-link class="nav-link" to="/my-bookings">Мои брони</router-link>
                     </li>
+                    <li class="nav-item" v-if="isAuthenticated">
+                      <router-link class="nav-link" to="/my-games">Мои игры</router-link>
+                    </li>
                     <li class="nav-item" v-if="isManager">
                         <router-link class="nav-link" to="/bookings">Управление бронями</router-link>
                     </li>

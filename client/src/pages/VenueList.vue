@@ -32,9 +32,7 @@ async function onRemoveClick(venue) {
   await fetchVenues();
 }
 
-function openVenue(v) {
-  selectedVenue.value = v;
-}
+function openVenue(v) { selectedVenue.value = v; }
 
 onMounted(fetchVenues);
 </script>
@@ -42,36 +40,43 @@ onMounted(fetchVenues);
 <template>
   <h1>Наши локации</h1>
 
-  <form v-if="profileStore.isAdmin" @submit.prevent="onVenueAdd" class="row g-2 mb-4 bg-light p-3 rounded">
-    <div class="col-md-3"><input v-model="venueToAdd.name" class="form-control" placeholder="Название" required /></div>
-    <div class="col-md-3"><input v-model="venueToAdd.address" class="form-control" placeholder="Адрес" required /></div>
-    <div class="col-md-4"><input v-model="venueToAdd.description" class="form-control" placeholder="Описание" /></div>
-    <div class="col-md-2"><button class="btn btn-primary w-100">Добавить</button></div>
-  </form>
+  <div v-if="profileStore.isAdmin">
+    <form @submit.prevent="onVenueAdd" class="row g-2 mb-4 bg-light p-3 rounded">
+      <div class="col-md-3"><input v-model="venueToAdd.name" class="form-control" placeholder="Название" required /></div>
+      <div class="col-md-3"><input v-model="venueToAdd.address" class="form-control" placeholder="Адрес" required /></div>
+      <div class="col-md-2"><input v-model.number="venueToAdd.capacity" type="number" class="form-control" placeholder="Вместимость" required /></div>
+      <div class="col-md-2"><input v-model="venueToAdd.description" class="form-control" placeholder="Описание" /></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100">Добавить</button></div>
+    </form>
 
-  <div id="venueCarousel" class="carousel slide" data-bs-ride="false">
-    <div class="carousel-inner">
-      <div class="carousel-item" :class="{ 'active': index === 0 }" v-for="(v, index) in venues" :key="v.id">
-        <div class="card mx-auto" style="width: 24rem; cursor: pointer;" @click="openVenue(v)" data-bs-toggle="modal" data-bs-target="#venueInfoModal">
-          <div class="card-body text-center">
-            <h3 class="card-title">{{ v.name }}</h3>
-            <h5 class="text-muted">{{ v.address }}</h5>
-            <p class="card-text">{{ v.description }}</p>
-            <p><b>Вместимость:</b> {{ v.capacity }} чел.</p>
-            <div v-if="profileStore.isAdmin" class="mt-3" @click.stop>
-              <button class="btn btn-sm btn-success me-2" data-bs-toggle="modal" data-bs-target="#editVenueModal" @click="onEditClick(v)">Ред.</button>
-              <button class="btn btn-sm btn-danger" @click="onRemoveClick(v)">Удал.</button>
-            </div>
-          </div>
+    <table class="table table-striped">
+      <thead><tr><th>Название</th><th>Адрес</th><th>Вместимость</th><th>Описание</th><th>Действия</th></tr></thead>
+      <tbody>
+        <tr v-for="v in venues" :key="v.id">
+          <td>{{ v.name }}</td>
+          <td>{{ v.address }}</td>
+          <td>{{ v.capacity }}</td>
+          <td>{{ v.description }}</td>
+          <td>
+            <button class="btn btn-sm btn-success me-1" data-bs-toggle="modal" data-bs-target="#editVenueModal" @click="onEditClick(v)">Ред.</button>
+            <button class="btn btn-sm btn-danger" @click="onRemoveClick(v)">Удал.</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div v-else class="venue-carousel">
+    <div class="venue-card-wrapper" v-for="v in venues" :key="v.id" @click="openVenue(v)" data-bs-toggle="modal" data-bs-target="#venueInfoModal">
+      <div class="card shadow-sm">
+        <div class="card-body text-center">
+          <h3 class="card-title">{{ v.name }}</h3>
+          <h5 class="text-muted">{{ v.address }}</h5>
+          <p class="card-text">{{ v.description }}</p>
+          <p class="mb-0"><b>Вместимость:</b> {{ v.capacity }} чел.</p>
         </div>
       </div>
     </div>
-    <button class="carousel-control-prev" type="button" data-bs-target="#venueCarousel" data-bs-slide="prev">
-      <span class="carousel-control-prev-icon bg-dark rounded-circle" aria-hidden="true"></span>
-    </button>
-    <button class="carousel-control-next" type="button" data-bs-target="#venueCarousel" data-bs-slide="next">
-      <span class="carousel-control-next-icon bg-dark rounded-circle" aria-hidden="true"></span>
-    </button>
   </div>
 
   <div class="modal fade" id="venueInfoModal" tabindex="-1">
@@ -95,6 +100,7 @@ onMounted(fetchVenues);
         <div class="modal-body">
           <input v-model="venueToEdit.name" class="form-control mb-2" />
           <input v-model="venueToEdit.address" class="form-control mb-2" />
+          <input v-model.number="venueToEdit.capacity" type="number" class="form-control mb-2" />
           <textarea v-model="venueToEdit.description" class="form-control mb-2"></textarea>
         </div>
         <div class="modal-footer">
@@ -105,3 +111,22 @@ onMounted(fetchVenues);
     </div>
   </div>
 </template>
+
+<style scoped>
+.venue-carousel {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 20px;
+  padding: 20px 10%;
+}
+.venue-card-wrapper {
+  flex: 0 0 80%;
+  scroll-snap-align: center;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+.venue-card-wrapper:hover { transform: scale(1.02); }
+.venue-carousel::-webkit-scrollbar { height: 8px; }
+.venue-carousel::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+</style>
