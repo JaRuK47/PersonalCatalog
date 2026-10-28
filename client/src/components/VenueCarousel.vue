@@ -33,16 +33,16 @@ const getPositionClass = (index) => {
         :key="v.id"
         class="carousel-card"
         :class="getPositionClass(index)"
-        @click="index === activeIndex ? emit('open', v) : activeIndex = index"
       >
-        <div class="card venue-card shadow-lg">
+        <div class="card venue-card shadow-lg" @click="index === activeIndex ? emit('open', v) : activeIndex = index">
           <div class="photo-placeholder bg-secondary d-flex align-items-center justify-content-center">
-            <span class="text-white fs-4">Фото скоро</span>
+            <img v-if="v.picture" :src="v.picture" class="carousel-img" />
+            <span v-else class="text-white fs-4">Фото скоро</span>
           </div>
           <div class="text-box p-4">
-            <h4 class="fw-bold">{{ v.name }}</h4>
-            <p class="text-muted small mb-2">{{ v.address }}</p>
-            <p class="mb-0">{{ v.description }}</p>
+            <h3 class="fw-bold mb-3">{{ v.name }}</h3>
+            <p class="text-muted small mb-3">{{ v.address }}</p>
+            <p class="mb-0 fs-5">{{ v.description }}</p>
           </div>
         </div>
       </div>
@@ -88,6 +88,11 @@ const getPositionClass = (index) => {
   opacity: 0.7;
   pointer-events: auto;
   z-index: 2;
+}
+.carousel-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .carousel-card.right {
   transform: translateX(110%) scale(0.85);
