@@ -7,12 +7,16 @@ from django.contrib.auth.models import User
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth import authenticate
-
-from .models import Venue, Session, Booking, Round, RoundPlayer
 from .serializers import (
     VenueSerializer, SessionSerializer, BookingSerializer,
-    RoundSerializer, RoundPlayerSerializer, UserSerializer
+    RoundSerializer, RoundPlayerSerializer, UserSerializer,  GameModeSerializer
 )
+from .models import Venue, Session, Booking, Round, RoundPlayer, GameMode
+
+
+class GameModeViewSet(viewsets.ModelViewSet):
+    queryset = GameMode.objects.all()
+    serializer_class = GameModeSerializer
 
 class ProfileViewSet(GenericViewSet):
     queryset = User.objects.all()

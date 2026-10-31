@@ -10,13 +10,16 @@ const sessions = ref([]);
 const venues = ref([]);
 const users = ref([]);
 const allBookings = ref([]);
+const gameModes = ref([]);
 
-const sessionToAdd = ref({ venue: null, date: '', start_time: '', title: 'Игра', game_mode: 'Спортивная мафия', description: '', max_players: 11 });
+const sessionToAdd = ref({ venue: null, date: '', start_time: '', title: 'Игра', game_mode: null, description: '', max_players: 11 });
 const sessionToEdit = ref({});
 const showBookingModal = ref(false);
 const selectedSession = ref(null);
 const currentSessionBookings = ref([]);
 const selectedImageForModal = ref(null);
+
+const newGameModeName = ref('');
 
 const addPictureRef = ref();
 const addImageUrl = ref();
@@ -24,16 +27,32 @@ const editPictureRef = ref();
 const editImageUrl = ref();
 
 async function fetchAll() {
-  const [s, v, b, u] = await Promise.all([
+  const [s, v, b, u, g] = await Promise.all([
     axios.get('/api/sessions/'),
     axios.get('/api/venues/'),
     axios.get('/api/bookings/'),
-    axios.get('/api/users/')
+    axios.get('/api/users/'),
+    axios.get('/api/game-modes/')
   ]);
   sessions.value = s.data;
   venues.value = v.data;
   allBookings.value = b.data;
   users.value = u.data;
+  gameModes.value = g.data;
+}
+
+async function addGameMode() {
+  if (!newGameModeName.value) return;
+  try {
+    const r = await axios.post('/api/game-modes/', { name: newGameModeName.value });
+    await fetchAll();
+    sessionToAdd.value.game_mode = r.data.id;
+    newGameModeName.value = '';
+    const modal = window.bootstrap.Modal.getInstance(document.getElementById('addModeModal'));
+    if (modal) modal.hide();
+  } catch (e) {
+    alert('Такой режим уже существует!');
+  }
 }
 
 function onAddPictureChange() {
@@ -58,7 +77,7 @@ async function onSessionAdd() {
 
   await axios.post('/api/sessions/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
 
-  sessionToAdd.value = { venue: null, date: '', start_time: '', title: 'Игра', game_mode: 'Спортивная мафия', description: '', max_players: 11 };
+  sessionToAdd.value = { venue: null, date: '', start_time: '', title: 'Игра', game_mode: null, description: '', max_players: 11 };
   addImageUrl.value = null;
   addPictureRef.value.value = '';
   await fetchAll();
@@ -170,6 +189,10 @@ function venueName(id) {
   return venues.value.find(v => v.id === id)?.name || '—';
 }
 
+function gameModeName(id) {
+  return gameModes.value.find(g => g.id === id)?.name || '—';
+}
+
 function userName(id) {
   return users.value.find(u => u.id === id)?.username || id;
 }
@@ -210,10 +233,18 @@ onMounted(fetchAll);
       <label class="form-label small mb-0">Название</label>
       <input v-model="sessionToAdd.title" class="form-control" required />
     </div>
+
     <div class="col-md-3">
       <label class="form-label small mb-0">Режим</label>
-      <input v-model="sessionToAdd.game_mode" class="form-control" required />
+      <div class="input-group">
+        <select v-model.number="sessionToAdd.game_mode" class="form-select" required>
+          <option disabled :value="null">Выбрать</option>
+          <option v-for="g in gameModes" :key="g.id" :value="g.id">{{ g.name }}</option>
+        </select>
+        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#addModeModal" title="Добавить новый режим">+</button>
+      </div>
     </div>
+
     <div class="col-md-4 mt-2">
       <input v-model="sessionToAdd.description" class="form-control" placeholder="Описание" />
     </div>
@@ -248,7 +279,7 @@ onMounted(fetchAll);
             </div>
           </td>
           <td>{{ s.date }} в {{ s.start_time }}</td>
-          <td><b>{{ s.title }}</b> <br><small class="text-muted">{{ s.game_mode }}</small></td>
+          <td><b>{{ s.title }}</b> <br><small class="text-muted">{{ gameModeName(s.game_mode) }}</small></td>
           <td>{{ venueName(s.venue) }}</td>
           <td>
             <span class="badge" :class="{'bg-danger': s.status === 'Отменена', 'bg-success': s.status === 'Идёт набор', 'bg-warning text-dark': s.status === 'Активно', 'bg-secondary': s.status === 'Завершена'}">{{ s.status }}</span>
@@ -269,7 +300,7 @@ onMounted(fetchAll);
         <img v-if="s.picture" :src="s.picture" class="card-img-top" style="height: 200px; object-fit: cover; cursor: pointer;" @click="openModal(s.picture)" />
         <div class="card-body">
           <h4 class="card-title">{{ s.title }} <span v-if="s.is_cancelled" class="badge bg-danger fs-6">Отменена</span></h4>
-          <h6 class="card-subtitle mb-2 text-primary">{{ s.game_mode }}</h6>
+          <h6 class="card-subtitle mb-2 text-primary">{{ gameModeName(s.game_mode) }}</h6>
           <p class="card-text text-muted mb-1"><b>{{ s.date }}</b> в {{ s.start_time }}</p>
           <p class="card-text mb-2">{{ venueName(s.venue) }}</p>
           <p class="card-text small">{{ s.description }}</p>
@@ -278,6 +309,25 @@ onMounted(fetchAll);
           <button v-if="!s.is_cancelled" class="btn w-100" :class="myBooking(s.id) ? 'btn-outline-danger' : 'btn-primary'" @click="handleBookClick(s)">
             {{ myBooking(s.id) ? 'Вы записаны (Управление)' : 'Забронировать' }}
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="addModeModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Новый режим игры</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label">Название режима</label>
+          <input v-model="newGameModeName" class="form-control" placeholder="Например: Городская мафия" />
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button class="btn btn-primary" data-bs-dismiss="modal" @click="addGameMode">Добавить</button>
         </div>
       </div>
     </div>
@@ -292,7 +342,7 @@ onMounted(fetchAll);
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <h6>Режим:</h6> <p>{{ selectedSession.game_mode }}</p>
+            <h6>Режим:</h6> <p>{{ gameModeName(selectedSession.game_mode) }}</p>
             <h6>Описание:</h6> <p>{{ selectedSession.description }}</p>
             <h6>Локация:</h6> <p>{{ venueName(selectedSession.venue) }}</p>
           </div>
@@ -319,15 +369,29 @@ onMounted(fetchAll);
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
+          <label class="form-label small mb-0">Место</label>
           <select v-model.number="sessionToEdit.venue" class="form-select mb-2">
             <option v-for="v in venues" :key="v.id" :value="v.id">{{ v.name }}</option>
           </select>
+
+          <label class="form-label small mb-0">Дата</label>
           <input v-model="sessionToEdit.date" type="date" class="form-control mb-2" />
+
+          <label class="form-label small mb-0">Время</label>
           <input v-model="sessionToEdit.start_time" type="time" class="form-control mb-2" />
+
+          <label class="form-label small mb-0">Название</label>
           <input v-model="sessionToEdit.title" class="form-control mb-2" placeholder="Название" />
-          <input v-model="sessionToEdit.game_mode" class="form-control mb-2" placeholder="Режим" />
+
+          <label class="form-label small mb-0">Режим</label>
+          <select v-model.number="sessionToEdit.game_mode" class="form-select mb-2">
+            <option v-for="g in gameModes" :key="g.id" :value="g.id">{{ g.name }}</option>
+          </select>
+
+          <label class="form-label small mb-0">Описание</label>
           <textarea v-model="sessionToEdit.description" class="form-control mb-2" placeholder="Описание"></textarea>
 
+          <label class="form-label small mb-0">Обновить постер</label>
           <input class="form-control mb-2" type="file" ref="editPictureRef" @change="onEditPictureChange" />
           <div class="text-center" v-show="editImageUrl">
             <img :src="editImageUrl" style="max-height: 100px; border-radius: 5px;" />

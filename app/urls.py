@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
 from venue.api import (
     VenueViewSet, SessionViewSet, BookingViewSet,
-    RoundViewSet, RoundPlayerViewSet, UserViewSet, ProfileViewSet
+    RoundViewSet, RoundPlayerViewSet, UserViewSet, ProfileViewSet, GameModeViewSet
 )
 
 router = DefaultRouter()
@@ -15,7 +15,7 @@ router.register('bookings', BookingViewSet, basename='booking')
 router.register('rounds', RoundViewSet, basename='round')
 router.register('round-players', RoundPlayerViewSet, basename='round-player')
 router.register('users', UserViewSet, basename='user')
-
+router.register('game-modes', GameModeViewSet, basename='game-mode')
 router.register('profile', ProfileViewSet, basename='profile')
 
 urlpatterns = [

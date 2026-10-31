@@ -2,8 +2,12 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import datetime, timedelta, time
-from .models import Venue, Session, Booking, Round, RoundPlayer
+from .models import Venue, Session, Booking, Round, RoundPlayer, GameMode
 
+class GameModeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GameMode
+        fields = '__all__'
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

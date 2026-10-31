@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="8597d0f7-3a7d-41f5-8032-59251221d7f5" name="Changes" comment="add carousel">
+    <list default="true" id="8597d0f7-3a7d-41f5-8032-59251221d7f5" name="Changes" comment="add image">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/VenueCarousel.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/components/VenueCarousel.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/AboutPage.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/AboutPage.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/BookingList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/BookingList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/RoundDetail.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/RoundDetail.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/RoundList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/RoundList.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/pages/SessionList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/SessionList.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/pages/VenueList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/VenueList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/venue/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/venue/api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/venue/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/venue/serializers.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -300,7 +305,8 @@
       <workItem from="1792689890554" duration="2167000" />
       <workItem from="1792727256205" duration="3057000" />
       <workItem from="1793153056914" duration="4209000" />
-      <workItem from="1793161839217" duration="1367000" />
+      <workItem from="1793161839217" duration="1390000" />
+      <workItem from="1793418952665" duration="3721000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -398,7 +404,15 @@
       <option name="project" value="LOCAL" />
       <updated>1792731941778</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="add image">
+      <option name="closed" value="true" />
+      <created>1793163229378</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1793163229378</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -428,7 +442,8 @@
     <MESSAGE value="refactor pages" />
     <MESSAGE value="add mygames" />
     <MESSAGE value="add carousel" />
-    <option name="LAST_COMMIT_MESSAGE" value="add carousel" />
+    <MESSAGE value="add image" />
+    <option name="LAST_COMMIT_MESSAGE" value="add image" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/PersonalCatalog$Test__venue_tests.coverage" NAME="Test: venue.tests Coverage Results" MODIFIED="1791340141571" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
