@@ -6,6 +6,7 @@ import VenueCarousel from '@/components/VenueCarousel.vue';
 
 const profileStore = useProfileStore();
 const venues = ref([]);
+const venueStats = ref({ count: 0, avg_capacity: 0, max_capacity: 0, min_capacity: 0 });
 const venueToAdd = ref({ name: '', address: '', description: '', capacity: 11 });
 const venueToEdit = ref({});
 
@@ -20,10 +21,9 @@ async function fetchVenues() {
   venues.value = r.data;
 }
 
-function onAddPictureChange() {
-  if (addPictureRef.value.files[0]) {
-    addImageUrl.value = URL.createObjectURL(addPictureRef.value.files[0]);
-  }
+async function fetchStats() {
+  const r = await axios.get('/api/venues/stats/');
+  venueStats.value = r.data;
 }
 
 async function onVenueAdd() {
@@ -42,6 +42,7 @@ async function onVenueAdd() {
   addImageUrl.value = null;
   addPictureRef.value.value = '';
   await fetchVenues();
+  await fetchStats();
 }
 
 function onEditClick(v) {
@@ -68,12 +69,14 @@ async function onUpdateVenue() {
 
   await axios.patch(`/api/venues/${venueToEdit.value.id}/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
   await fetchVenues();
+  await fetchStats();
 }
 
 async function onRemoveClick(venue) {
   if (!confirm('Удалить локацию?')) return;
   await axios.delete(`/api/venues/${venue.id}/`);
   await fetchVenues();
+  await fetchStats();
 }
 
 function openModal(url) {
@@ -82,12 +85,42 @@ function openModal(url) {
   modal.show();
 }
 
-onMounted(fetchVenues);
+onMounted(() => {
+  fetchVenues();
+  fetchStats();
+});
 </script>
 
 <template>
   <div v-if="profileStore.isAdmin">
     <h1 class="mb-4">Наши локации</h1>
+
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <div class="card bg-primary text-white shadow-sm text-center py-3">
+          <h5 class="mb-0">Всего локаций</h5>
+          <h2 class="mb-0">{{ venueStats.count }}</h2>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-info text-white shadow-sm text-center py-3">
+          <h5 class="mb-0">Средняя вместимость</h5>
+          <h2 class="mb-0">{{ venueStats.avg_capacity ? venueStats.avg_capacity.toFixed(1) : 0 }}</h2>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-success text-white shadow-sm text-center py-3">
+          <h5 class="mb-0">Макс. вместимость</h5>
+          <h2 class="mb-0">{{ venueStats.max_capacity }}</h2>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-warning text-dark shadow-sm text-center py-3">
+          <h5 class="mb-0">Мин. вместимость</h5>
+          <h2 class="mb-0">{{ venueStats.min_capacity }}</h2>
+        </div>
+      </div>
+    </div>
 
     <form @submit.prevent="onVenueAdd" class="row g-2 mb-4 bg-light p-3 rounded shadow-sm align-items-end">
       <div class="col-md-3">

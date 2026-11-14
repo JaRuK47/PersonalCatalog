@@ -11,12 +11,12 @@ const venues = ref([]);
 const users = ref([]);
 const allBookings = ref([]);
 const gameModes = ref([]);
+const sessionStats = ref({ count: 0, cancelled_count: 0 });
 
 const sessionToAdd = ref({ venue: null, date: '', start_time: '', title: 'Игра', game_mode: null, description: '', max_players: 11 });
 const sessionToEdit = ref({});
 const showBookingModal = ref(false);
 const selectedSession = ref(null);
-const currentSessionBookings = ref([]);
 const selectedImageForModal = ref(null);
 
 const newGameModeName = ref('');
@@ -39,6 +39,11 @@ async function fetchAll() {
   allBookings.value = b.data;
   users.value = u.data;
   gameModes.value = g.data;
+}
+
+async function fetchStats() {
+  const r = await axios.get('/api/sessions/stats/');
+  sessionStats.value = r.data;
 }
 
 async function addGameMode() {
@@ -81,6 +86,7 @@ async function onSessionAdd() {
   addImageUrl.value = null;
   addPictureRef.value.value = '';
   await fetchAll();
+  await fetchStats();
 }
 
 function onEditClick(s) {
@@ -110,18 +116,21 @@ async function onUpdateSession() {
 
   await axios.patch(`/api/sessions/${sessionToEdit.value.id}/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
   await fetchAll();
+  await fetchStats();
 }
 
 async function onRemoveClick(s) {
   if(!confirm('Удалить сессию полностью?')) return;
   await axios.delete(`/api/sessions/${s.id}/`);
   await fetchAll();
+  await fetchStats();
 }
 
 async function cancelSession(s) {
   if(!confirm('Отменить сессию?')) return;
   await axios.patch(`/api/sessions/${s.id}/`, { is_cancelled: true });
   await fetchAll();
+  await fetchStats();
 }
 
 function handleBookClick(s) {
@@ -130,23 +139,17 @@ function handleBookClick(s) {
     return;
   }
   selectedSession.value = s;
-  currentSessionBookings.value = allBookings.value.filter(b => b.session === s.id && (b.status === 'active' || b.status === 'attended'));
   showBookingModal.value = true;
 }
 
 function myBooking(sessionId) {
-  return allBookings.value.find(b => b.session === sessionId && b.user === profileStore.userId && (b.status === 'active' || b.status === 'attended'));
+  return allBookings.value.find(b => b.session === sessionId && (b.status === 'active' || b.status === 'attended'));
 }
 
 async function bookPlace() {
-  if (!profileStore.userId) {
-    alert('Ошибка: вы не авторизованы или данные профиля не загрузились.');
-    return;
-  }
-  await axios.post('/api/bookings/', { user: profileStore.userId, session: selectedSession.value.id, status: 'active' });
+  await axios.post('/api/bookings/', { session: selectedSession.value.id, status: 'active' });
   alert('Вы успешно забронировали место!');
   await fetchAll();
-  currentSessionBookings.value = allBookings.value.filter(b => b.session === selectedSession.value.id && b.status === 'active');
 }
 
 async function cancelBooking() {
@@ -155,7 +158,6 @@ async function cancelBooking() {
   if(!confirm('Отменить бронь?')) return;
   await axios.delete(`/api/bookings/${b.id}/`);
   await fetchAll();
-  currentSessionBookings.value = allBookings.value.filter(x => x.session === selectedSession.value.id && x.status === 'active');
   showBookingModal.value = false;
 }
 
@@ -165,14 +167,11 @@ const sortedSessions = computed(() => {
   if (!profileStore.isManager) {
     const twoDaysAgo = new Date();
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-
     result = result.filter(s => {
       if (s.is_cancelled) return true;
       if (s.status !== 'Завершена') return true;
-      const sessionDate = new Date(`${s.date}T${s.start_time}`);
-      return sessionDate >= twoDaysAgo;
+      return new Date(`${s.date}T${s.start_time}`) >= twoDaysAgo;
     });
-
     result.sort((a, b) => {
       if (a.is_cancelled && !b.is_cancelled) return -1;
       if (!a.is_cancelled && b.is_cancelled) return 1;
@@ -181,25 +180,12 @@ const sortedSessions = computed(() => {
   } else {
     result.sort((a, b) => new Date(`${b.date}T${b.start_time}`) - new Date(`${a.date}T${a.start_time}`));
   }
-
   return result;
 });
 
-function venueName(id) {
-  return venues.value.find(v => v.id === id)?.name || '—';
-}
-
-function gameModeName(id) {
-  return gameModes.value.find(g => g.id === id)?.name || '—';
-}
-
-function userName(id) {
-  return users.value.find(u => u.id === id)?.username || id;
-}
-
-function isPast(s) {
-  return new Date(`${s.date}T${s.start_time}`) < new Date();
-}
+function venueName(id) { return venues.value.find(v => v.id === id)?.name || '—'; }
+function gameModeName(id) { return gameModes.value.find(g => g.id === id)?.name || '—'; }
+function isPast(s) { return new Date(`${s.date}T${s.start_time}`) < new Date(); }
 
 function openModal(url) {
   selectedImageForModal.value = url;
@@ -207,11 +193,29 @@ function openModal(url) {
   modal.show();
 }
 
-onMounted(fetchAll);
+onMounted(() => {
+  fetchAll();
+  fetchStats();
+});
 </script>
 
 <template>
   <h1>Расписание сессий</h1>
+
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card bg-primary text-white shadow-sm text-center py-3">
+        <h5 class="mb-0">Всего сессий в базе</h5>
+        <h2 class="mb-0">{{ sessionStats.count }}</h2>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card bg-danger text-white shadow-sm text-center py-3">
+        <h5 class="mb-0">Отмененных игр</h5>
+        <h2 class="mb-0">{{ sessionStats.cancelled_count }}</h2>
+      </div>
+    </div>
+  </div>
 
   <form v-if="profileStore.isManager" @submit.prevent="onSessionAdd" class="row g-2 mb-4 bg-light p-3 rounded shadow-sm align-items-end">
     <div class="col-md-3">
@@ -233,7 +237,6 @@ onMounted(fetchAll);
       <label class="form-label small mb-0">Название</label>
       <input v-model="sessionToAdd.title" class="form-control" required />
     </div>
-
     <div class="col-md-3">
       <label class="form-label small mb-0">Режим</label>
       <div class="input-group">
@@ -244,7 +247,6 @@ onMounted(fetchAll);
         <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#addModeModal" title="Добавить новый режим">+</button>
       </div>
     </div>
-
     <div class="col-md-4 mt-2">
       <input v-model="sessionToAdd.description" class="form-control" placeholder="Описание" />
     </div>
@@ -275,7 +277,7 @@ onMounted(fetchAll);
         <tr v-for="s in sortedSessions" :key="s.id" :class="{'table-danger': s.is_cancelled}">
           <td>
             <div v-show="s.picture">
-              <img :src="s.picture" style="max-height: 50px; cursor: pointer; border-radius: 5px;" @click="openModal(s.picture)" />
+              <img :src="s.picture" style="width: 80px; height: 50px; object-fit: cover; border-radius: 5px; cursor: pointer;" @click="openModal(s.picture)" />
             </div>
           </td>
           <td>{{ s.date }} в {{ s.start_time }}</td>
@@ -297,7 +299,7 @@ onMounted(fetchAll);
   <div v-else class="row">
     <div class="col-md-4 mb-3" v-for="s in sortedSessions" :key="s.id">
       <div class="card shadow-sm h-100" :class="{'border-danger border-2': s.is_cancelled}">
-        <img v-if="s.picture" :src="s.picture" class="card-img-top" style="height: 200px; object-fit: cover; cursor: pointer;" @click="openModal(s.picture)" />
+        <img v-if="s.picture" :src="s.picture" class="card-img-top" style="height: 300px; object-fit: cover; cursor: pointer;" @click="openModal(s.picture)" />
         <div class="card-body">
           <h4 class="card-title">{{ s.title }} <span v-if="s.is_cancelled" class="badge bg-danger fs-6">Отменена</span></h4>
           <h6 class="card-subtitle mb-2 text-primary">{{ gameModeName(s.game_mode) }}</h6>
@@ -309,6 +311,34 @@ onMounted(fetchAll);
           <button v-if="!s.is_cancelled" class="btn w-100" :class="myBooking(s.id) ? 'btn-outline-danger' : 'btn-primary'" @click="handleBookClick(s)">
             {{ myBooking(s.id) ? 'Вы записаны (Управление)' : 'Забронировать' }}
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="showBookingModal" class="modal fade show d-block" style="background: rgba(0,0,0,0.6);" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content" v-if="selectedSession">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ selectedSession.title }} | {{ selectedSession.date }}</h5>
+          <button type="button" class="btn-close" @click="showBookingModal = false"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <h6>Режим:</h6> <p>{{ gameModeName(selectedSession.game_mode) }}</p>
+            <h6>Описание:</h6> <p>{{ selectedSession.description }}</p>
+            <h6>Локация:</h6> <p>{{ venueName(selectedSession.venue) }}</p>
+          </div>
+          <h5 class="mt-4 border-top pt-3">Список игроков ({{ selectedSession.booked_users.length }}):</h5>
+          <ul class="list-group">
+            <li class="list-group-item" v-for="(uname, idx) in selectedSession.booked_users" :key="idx">{{ uname }}</li>
+            <li class="list-group-item text-muted" v-if="selectedSession.booked_users.length === 0">Пока никого нет</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="showBookingModal = false">Закрыть</button>
+          <button v-if="!myBooking(selectedSession.id)" class="btn btn-success" @click="bookPlace">Забронировать</button>
+          <button v-else class="btn btn-danger" @click="cancelBooking">Отменить мою бронь</button>
         </div>
       </div>
     </div>
@@ -333,34 +363,6 @@ onMounted(fetchAll);
     </div>
   </div>
 
-  <div v-if="showBookingModal" class="modal fade show d-block" style="background: rgba(0,0,0,0.6);" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content" v-if="selectedSession">
-        <div class="modal-header">
-          <h5 class="modal-title">{{ selectedSession.title }} | {{ selectedSession.date }}</h5>
-          <button type="button" class="btn-close" @click="showBookingModal = false"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <h6>Режим:</h6> <p>{{ gameModeName(selectedSession.game_mode) }}</p>
-            <h6>Описание:</h6> <p>{{ selectedSession.description }}</p>
-            <h6>Локация:</h6> <p>{{ venueName(selectedSession.venue) }}</p>
-          </div>
-          <h5 class="mt-4 border-top pt-3">Список игроков ({{ currentSessionBookings.length }}):</h5>
-          <ul class="list-group">
-            <li class="list-group-item" v-for="b in currentSessionBookings" :key="b.id">{{ userName(b.user) }}</li>
-            <li class="list-group-item text-muted" v-if="currentSessionBookings.length === 0">Пока никого нет</li>
-          </ul>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showBookingModal = false">Закрыть</button>
-          <button v-if="!myBooking(selectedSession.id)" class="btn btn-success" @click="bookPlace">Забронировать</button>
-          <button v-else class="btn btn-danger" @click="cancelBooking">Отменить мою бронь</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div class="modal fade" id="editSessionModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -373,24 +375,18 @@ onMounted(fetchAll);
           <select v-model.number="sessionToEdit.venue" class="form-select mb-2">
             <option v-for="v in venues" :key="v.id" :value="v.id">{{ v.name }}</option>
           </select>
-
           <label class="form-label small mb-0">Дата</label>
           <input v-model="sessionToEdit.date" type="date" class="form-control mb-2" />
-
           <label class="form-label small mb-0">Время</label>
           <input v-model="sessionToEdit.start_time" type="time" class="form-control mb-2" />
-
           <label class="form-label small mb-0">Название</label>
           <input v-model="sessionToEdit.title" class="form-control mb-2" placeholder="Название" />
-
           <label class="form-label small mb-0">Режим</label>
           <select v-model.number="sessionToEdit.game_mode" class="form-select mb-2">
             <option v-for="g in gameModes" :key="g.id" :value="g.id">{{ g.name }}</option>
           </select>
-
           <label class="form-label small mb-0">Описание</label>
           <textarea v-model="sessionToEdit.description" class="form-control mb-2" placeholder="Описание"></textarea>
-
           <label class="form-label small mb-0">Обновить постер</label>
           <input class="form-control mb-2" type="file" ref="editPictureRef" @change="onEditPictureChange" />
           <div class="text-center" v-show="editImageUrl">

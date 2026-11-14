@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="8597d0f7-3a7d-41f5-8032-59251221d7f5" name="Changes" comment="add image">
+    <list default="true" id="8597d0f7-3a7d-41f5-8032-59251221d7f5" name="Changes" comment="add gamer">
+      <change afterPath="$PROJECT_DIR$/venue/management/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/venue/management/commands/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/venue/management/commands/generate_data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/components/VenueCarousel.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/components/VenueCarousel.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/pages/AboutPage.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/AboutPage.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/pages/BookingList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/BookingList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/MyBookings.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/MyBookings.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/pages/RoundDetail.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/RoundDetail.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/pages/RoundList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/RoundList.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/pages/SessionList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/SessionList.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/pages/VenueList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/VenueList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/venue/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/venue/api.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/venue/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/venue/serializers.py" afterDir="false" />
     </list>
@@ -61,6 +66,7 @@
     &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
     &quot;Django Server.server.executor&quot;: &quot;Run&quot;,
     &quot;Django tests.Test: venue.tests.RoundPlayerViewSetTestCase.test_create_round_player.executor&quot;: &quot;Run&quot;,
+    &quot;Django tests.Test: venue.tests.SessionViewSetTestCase.test_create_session.executor&quot;: &quot;Run&quot;,
     &quot;Django tests.Test: venue.tests.executor&quot;: &quot;Run&quot;,
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
     &quot;Python.tests.executor&quot;: &quot;Run&quot;,
@@ -135,6 +141,30 @@
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="RUN_TOOL" value="" />
       <option name="TARGET" value="venue.tests.RoundPlayerViewSetTestCase.test_create_round_player" />
+      <option name="SETTINGS_FILE" value="$PROJECT_DIR$/app/settings.py" />
+      <option name="CUSTOM_SETTINGS" value="true" />
+      <option name="USE_OPTIONS" value="false" />
+      <option name="OPTIONS" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Test: venue.tests.SessionViewSetTestCase.test_create_session" type="DjangoTestsConfigurationType" temporary="true">
+      <module name="PersonalCatalog" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="$PROJECT_DIR$/.venv/Scripts/python.exe" />
+      <option name="SDK_NAME" value="Python 3.13 (PersonalCatalog)" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="RUN_TOOL" value="" />
+      <option name="TARGET" value="venue.tests.SessionViewSetTestCase.test_create_session" />
       <option name="SETTINGS_FILE" value="$PROJECT_DIR$/app/settings.py" />
       <option name="CUSTOM_SETTINGS" value="true" />
       <option name="USE_OPTIONS" value="false" />
@@ -256,6 +286,7 @@
     </configuration>
     <list>
       <item itemvalue="Django Server.server" />
+      <item itemvalue="Django tests.Test: venue.tests.SessionViewSetTestCase.test_create_session" />
       <item itemvalue="Django tests.Test: venue.tests.RoundPlayerViewSetTestCase.test_create_round_player" />
       <item itemvalue="Django tests.Test: venue.tests" />
       <item itemvalue="npm.dev" />
@@ -263,6 +294,7 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Django tests.Test: venue.tests.SessionViewSetTestCase.test_create_session" />
         <item itemvalue="Django tests.Test: venue.tests.RoundPlayerViewSetTestCase.test_create_round_player" />
         <item itemvalue="Django tests.Test: venue.tests" />
         <item itemvalue="Python.tests" />
@@ -306,7 +338,11 @@
       <workItem from="1792727256205" duration="3057000" />
       <workItem from="1793153056914" duration="4209000" />
       <workItem from="1793161839217" duration="1390000" />
-      <workItem from="1793418952665" duration="3721000" />
+      <workItem from="1793418952665" duration="4010000" />
+      <workItem from="1794203638577" duration="3598000" />
+      <workItem from="1794365774304" duration="280000" />
+      <workItem from="1794367593786" duration="350000" />
+      <workItem from="1794628232449" duration="3931000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -412,7 +448,15 @@
       <option name="project" value="LOCAL" />
       <updated>1793163229378</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="add gamer">
+      <option name="closed" value="true" />
+      <created>1793423237832</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1793423237832</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -443,10 +487,12 @@
     <MESSAGE value="add mygames" />
     <MESSAGE value="add carousel" />
     <MESSAGE value="add image" />
-    <option name="LAST_COMMIT_MESSAGE" value="add image" />
+    <MESSAGE value="add gamer" />
+    <option name="LAST_COMMIT_MESSAGE" value="add gamer" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/PersonalCatalog$Test__venue_tests.coverage" NAME="Test: venue.tests Coverage Results" MODIFIED="1791340141571" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/PersonalCatalog$Test__venue_tests_SessionViewSetTestCase_test_create_session.coverage" NAME="Test: venue.tests.SessionViewSetTestCase.test_create_session Coverage Results" MODIFIED="1794365986867" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/PersonalCatalog$tests.coverage" NAME="tests Coverage Results" MODIFIED="1791340110848" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/venue" />
     <SUITE FILE_PATH="coverage/PersonalCatalog$Test__venue_tests_RoundPlayerViewSetTestCase_test_create_round_player.coverage" NAME="Test: venue.tests.RoundPlayerViewSetTestCase.test_create_round_player Coverage Results" MODIFIED="1791340154484" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
   </component>

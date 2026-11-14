@@ -40,9 +40,9 @@ const getPositionClass = (index) => {
             <span v-else class="text-white fs-4">Фото скоро</span>
           </div>
           <div class="text-box p-4">
-            <h3 class="fw-bold mb-3">{{ v.name }}</h3>
+            <h3 class="fw-bold mb-2">{{ v.name }}</h3>
             <p class="text-muted small mb-3">{{ v.address }}</p>
-            <p class="mb-0 fs-5">{{ v.description }}</p>
+            <p class="mb-0 fs-6">{{ v.description }}</p>
           </div>
         </div>
       </div>
@@ -61,14 +61,16 @@ const getPositionClass = (index) => {
 }
 .carousel-track-container {
   position: relative;
-  height: 500px;
+  height: 750px;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 .carousel-card {
   position: absolute;
-  width: 400px;
+  width: 650px;
+  max-width: 85vw;
+  height: 100%;
   transition: all 0.5s ease-in-out;
   cursor: pointer;
   opacity: 0;
@@ -84,18 +86,13 @@ const getPositionClass = (index) => {
   filter: brightness(1);
 }
 .carousel-card.left {
-  transform: translateX(-110%) scale(0.85);
+  transform: translateX(-65%) scale(0.8);
   opacity: 0.7;
   pointer-events: auto;
   z-index: 2;
 }
-.carousel-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
 .carousel-card.right {
-  transform: translateX(110%) scale(0.85);
+  transform: translateX(65%) scale(0.8);
   opacity: 0.7;
   pointer-events: auto;
   z-index: 2;
@@ -106,21 +103,28 @@ const getPositionClass = (index) => {
 .venue-card {
   height: 100%;
   border: none;
-  border-radius: 20px;
+  border-radius: 25px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 .photo-placeholder {
-  height: 250px;
+  height: 60%;
   width: 100%;
+  flex-shrink: 0;
 }
 .text-box {
+  height: 40%;
+  overflow-y: auto;
   background: white;
-  border-radius: 20px 20px 0 0;
+  border-radius: 25px 25px 0 0;
   margin-top: -20px;
   z-index: 1;
-  flex-grow: 1;
+}
+.carousel-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .carousel-btn {
   position: absolute;
@@ -129,14 +133,14 @@ const getPositionClass = (index) => {
   background: rgba(0, 0, 0, 0.5);
   color: white;
   border: none;
-  font-size: 30px;
-  padding: 10px 20px;
+  font-size: 35px;
+  padding: 15px 25px;
   border-radius: 50%;
   z-index: 10;
   cursor: pointer;
   transition: background 0.3s;
 }
 .carousel-btn:hover { background: rgba(0, 0, 0, 0.8); }
-.carousel-btn.prev { left: 10%; }
-.carousel-btn.next { right: 10%; }
+.carousel-btn.prev { left: 5%; }
+.carousel-btn.next { right: 5%; }
 </style>

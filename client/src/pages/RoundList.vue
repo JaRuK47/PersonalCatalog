@@ -10,6 +10,7 @@ const rounds = ref([]);
 const sessions = ref([]);
 const users = ref([]);
 const gameModes = ref([]);
+const roundStats = ref({ count: 0, mafia_wins: 0, town_wins: 0 });
 
 const roundToAdd = ref({ session: null, number: 1, host: null, game_mode: null, description: '' });
 const roundToEdit = ref({});
@@ -28,6 +29,11 @@ async function fetchAll() {
   sessions.value = s.data;
   users.value = u.data;
   gameModes.value = g.data;
+}
+
+async function fetchStats() {
+  const r = await axios.get('/api/rounds/stats/');
+  roundStats.value = r.data;
 }
 
 const availableSessions = computed(() => {
@@ -52,6 +58,7 @@ async function onRoundAdd() {
     await axios.post('/api/rounds/', roundToAdd.value);
     roundToAdd.value = { session: null, number: 1, host: null, game_mode: null, description: '' };
     await fetchAll();
+    await fetchStats();
   } catch (e) {
     alert('Ошибка! Партия с таким номером уже существует.');
   }
@@ -62,6 +69,7 @@ async function onUpdateRound() {
   try {
     await axios.put(`/api/rounds/${roundToEdit.value.id}/`, roundToEdit.value);
     await fetchAll();
+    await fetchStats();
   } catch (e) {
     alert('Ошибка! Партия с таким номером уже существует.');
   }
@@ -71,6 +79,7 @@ async function onRemoveClick(r) {
   if(!confirm('Удалить партию?')) return;
   await axios.delete(`/api/rounds/${r.id}/`);
   await fetchAll();
+  await fetchStats();
 }
 
 const groupedRounds = computed(() => {
@@ -91,11 +100,35 @@ const groupedRounds = computed(() => {
 function userName(id) { return users.value.find(u => u.id === id)?.username || 'Неизвестен'; }
 function gameModeName(id) { return gameModes.value.find(g => g.id === id)?.name || '—'; }
 
-onMounted(fetchAll);
+onMounted(() => {
+  fetchAll();
+  fetchStats();
+});
 </script>
 
 <template>
   <h1>Партии</h1>
+
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card bg-primary text-white shadow-sm text-center py-3">
+        <h5 class="mb-0">Всего партий</h5>
+        <h2 class="mb-0">{{ roundStats.count }}</h2>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card bg-dark text-white shadow-sm text-center py-3">
+        <h5 class="mb-0">Побед Мафии</h5>
+        <h2 class="mb-0">{{ roundStats.mafia_wins }}</h2>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card bg-success text-white shadow-sm text-center py-3">
+        <h5 class="mb-0">Побед Мирных</h5>
+        <h2 class="mb-0">{{ roundStats.town_wins }}</h2>
+      </div>
+    </div>
+  </div>
 
   <form v-if="profileStore.isManager" @submit.prevent="onRoundAdd" class="row g-2 mb-4 bg-light p-3 rounded shadow-sm align-items-end">
     <div class="col-md-2">

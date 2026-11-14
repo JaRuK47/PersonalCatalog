@@ -15,7 +15,7 @@ const allBookings = ref([]);
 const allRounds = ref([]);
 const allRoundPlayers = ref([]);
 
-const newPlayer = ref({ user: null, role: 'Мирный', points: 0.0, won: false, description: '' });
+const newPlayer = ref({ user: null, role: 'Мирный', points: 0.0, description: '' });
 const playerToEdit = ref({});
 const searchQuery = ref('');
 
@@ -30,7 +30,7 @@ async function fetchData() {
   const roundId = route.params.id;
   const [r, p, u, b, ar, arp] = await Promise.all([
     axios.get(`/api/rounds/${roundId}/`),
-    axios.get(`/api/round-players/`),
+    axios.get('/api/round-players/'),
     axios.get('/api/users/'),
     axios.get('/api/bookings/'),
     axios.get('/api/rounds/'),
@@ -45,6 +45,23 @@ async function fetchData() {
   allRoundPlayers.value = arp.data;
 }
 
+async function updateWinningTeam(event) {
+  const team = event.target.value;
+  await axios.patch(`/api/rounds/${roundInfo.value.id}/`, { winning_team: team });
+  await fetchData();
+}
+
+function isWinner(player) {
+  if (!roundInfo.value.winning_team) return null;
+
+  const mafiaRoles = ['Мафия', 'Дон'];
+  const isMafia = mafiaRoles.includes(player.role);
+
+  if (roundInfo.value.winning_team === 'mafia' && isMafia) return true;
+  if (roundInfo.value.winning_team === 'town' && !isMafia) return true;
+  return false;
+}
+
 async function addPlayer() {
   const isAlreadyAdded = players.value.some(p => p.user === newPlayer.value.user);
   if (isAlreadyAdded) {
@@ -54,7 +71,7 @@ async function addPlayer() {
 
   try {
     await axios.post('/api/round-players/', { ...newPlayer.value, round: route.params.id });
-    newPlayer.value = { user: null, role: 'Мирный', points: 0.0, won: false, description: '' };
+    newPlayer.value = { user: null, role: 'Мирный', points: 0.0, description: '' };
     searchQuery.value = '';
     await fetchData();
   } catch (e) {
@@ -64,60 +81,29 @@ async function addPlayer() {
 
 async function addFromBookings() {
   if (!confirm('Добавить всех игроков, забронировавших эту сессию?')) return;
-
-  const sessionBookings = allBookings.value.filter(
-    b => b.session === roundInfo.value.session && (b.status === 'active' || b.status === 'attended')
-  );
-
-  const playersToAdd = sessionBookings.filter(
-    b => !players.value.some(p => p.user === b.user)
-  );
-
-  if (playersToAdd.length === 0) {
-    alert('Все забронированные игроки уже добавлены в партию!');
-    return;
-  }
+  const sessionBookings = allBookings.value.filter(b => b.session === roundInfo.value.session && (b.status === 'active' || b.status === 'attended'));
+  const playersToAdd = sessionBookings.filter(b => !players.value.some(p => p.user === b.user));
+  if (playersToAdd.length === 0) { alert('Все уже добавлены!'); return; }
 
   for (let b of playersToAdd) {
-    await axios.post('/api/round-players/', {
-      round: route.params.id, user: b.user, role: 'Мирный', points: 0, won: false
-    });
+    await axios.post('/api/round-players/', { round: route.params.id, user: b.user, role: 'Мирный', points: 0 });
   }
   await fetchData();
 }
 
 async function copyFromPreviousRound() {
   const currentNumber = roundInfo.value.number;
-  if (currentNumber <= 1) {
-    alert('Это первая партия в сессии, копировать нечего.');
-    return;
-  }
-
-  const prevRound = allRounds.value.find(
-    r => r.session === roundInfo.value.session && r.number === currentNumber - 1
-  );
-
-  if (!prevRound) {
-    alert('Предыдущая партия не найдена.');
-    return;
-  }
-
+  if (currentNumber <= 1) { alert('Это первая партия.'); return; }
+  const prevRound = allRounds.value.find(r => r.session === roundInfo.value.session && r.number === currentNumber - 1);
+  if (!prevRound) { alert('Предыдущая не найдена.'); return; }
   if (!confirm(`Скопировать игроков из Партии #${prevRound.number}?`)) return;
 
   const prevPlayers = allRoundPlayers.value.filter(rp => rp.round === prevRound.id);
-  const playersToAdd = prevPlayers.filter(
-    pp => !players.value.some(p => p.user === pp.user)
-  );
-
-  if (playersToAdd.length === 0) {
-    alert('Все игроки из прошлой партии уже добавлены!');
-    return;
-  }
+  const playersToAdd = prevPlayers.filter(pp => !players.value.some(p => p.user === pp.user));
+  if (playersToAdd.length === 0) { alert('Все уже добавлены!'); return; }
 
   for (let p of playersToAdd) {
-    await axios.post('/api/round-players/', {
-      round: route.params.id, user: p.user, role: 'Мирный', points: 0, won: false
-    });
+    await axios.post('/api/round-players/', { round: route.params.id, user: p.user, role: 'Мирный', points: 0 });
   }
   await fetchData();
 }
@@ -145,6 +131,15 @@ onMounted(fetchData);
     <h1>Партия #{{ roundInfo.number }}</h1>
     <p>{{ roundInfo.description }}</p>
 
+    <div class="mb-4 bg-white p-3 rounded shadow-sm border d-inline-block" v-if="profileStore.isManager">
+      <label class="fw-bold me-2">Победившая сторона:</label>
+      <select :value="roundInfo.winning_team" @change="updateWinningTeam" class="form-select d-inline-block w-auto">
+        <option :value="null">Не выбрана</option>
+        <option value="town">Победа Мирных (Шериф, Доктор, Мирные)</option>
+        <option value="mafia">Победа Мафии (Мафия, Дон)</option>
+      </select>
+    </div>
+
     <div v-if="profileStore.isManager" class="mb-3">
       <button class="btn btn-info text-white me-2" @click="addFromBookings">➕ Взять из броней сессии</button>
       <button class="btn btn-secondary" @click="copyFromPreviousRound">📋 Скопировать из партии #{{ roundInfo.number - 1 }}</button>
@@ -153,7 +148,7 @@ onMounted(fetchData);
     <form v-if="profileStore.isManager" @submit.prevent="addPlayer" class="row g-2 mb-4 bg-light p-3 rounded shadow-sm align-items-end">
       <div class="col-md-2">
         <label class="form-label small mb-0">Поиск игрока</label>
-        <input v-model="searchQuery" type="text" class="form-control" placeholder="Начните вводить..." />
+        <input v-model="searchQuery" type="text" class="form-control" placeholder="Имя..." />
       </div>
       <div class="col-md-2">
         <label class="form-label small mb-0">Игрок</label>
@@ -164,19 +159,21 @@ onMounted(fetchData);
       </div>
       <div class="col-md-2">
         <label class="form-label small mb-0">Роль</label>
-        <input v-model="newPlayer.role" class="form-control" required />
+        <select v-model="newPlayer.role" class="form-select" required>
+          <option value="Мирный">Мирный</option>
+          <option value="Мафия">Мафия</option>
+          <option value="Дон">Дон</option>
+          <option value="Шериф">Шериф</option>
+          <option value="Доктор">Доктор</option>
+        </select>
       </div>
       <div class="col-md-2">
         <label class="form-label small mb-0">Очки</label>
         <input v-model.number="newPlayer.points" type="number" step="0.1" class="form-control" />
       </div>
-      <div class="col-md-2">
+      <div class="col-md-3">
         <label class="form-label small mb-0">За что баллы?</label>
         <input v-model="newPlayer.description" class="form-control" />
-      </div>
-      <div class="col-md-1 form-check ms-2 mb-2">
-        <input v-model="newPlayer.won" class="form-check-input" type="checkbox" id="newWon">
-        <label class="form-check-label" for="newWon">Победа</label>
       </div>
       <div class="col-md-1">
         <button class="btn btn-primary w-100">Доб.</button>
@@ -185,7 +182,7 @@ onMounted(fetchData);
 
     <div class="row">
       <div class="col-md-6" v-for="p in players" :key="p.id">
-        <div class="card mb-2 shadow-sm">
+        <div class="card mb-2 shadow-sm" :class="{'border-success': isWinner(p) === true, 'border-danger': isWinner(p) === false}">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center">
               <div>
@@ -195,8 +192,11 @@ onMounted(fetchData);
               </div>
               <div class="text-end">
                 <span class="badge bg-primary fs-6">{{ p.points }} очков</span>
-                <span v-if="p.won" class="badge bg-success ms-2">Победа</span>
-                <span v-else class="badge bg-secondary ms-2">Проигрыш</span>
+
+                <span v-if="isWinner(p) === true" class="badge bg-success ms-2">Победа</span>
+                <span v-if="isWinner(p) === false" class="badge bg-secondary ms-2">Проигрыш</span>
+                <span v-if="isWinner(p) === null" class="badge bg-warning text-dark ms-2">Не определено</span>
+
                 <div v-if="profileStore.isManager" class="mt-2">
                   <button class="btn btn-sm btn-success me-1" data-bs-toggle="modal" data-bs-target="#editPlayerModal" @click="onEditClick(p)">Ред.</button>
                   <button class="btn btn-sm btn-danger" @click="removePlayer(p.id)">Удал.</button>
@@ -214,13 +214,15 @@ onMounted(fetchData);
       <div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">Редактировать игрока</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
-          <input v-model="playerToEdit.role" class="form-control mb-2" placeholder="Роль" />
+          <select v-model="playerToEdit.role" class="form-select mb-2">
+            <option value="Мирный">Мирный</option>
+            <option value="Мафия">Мафия</option>
+            <option value="Дон">Дон</option>
+            <option value="Шериф">Шериф</option>
+            <option value="Доктор">Доктор</option>
+          </select>
           <input v-model.number="playerToEdit.points" type="number" step="0.1" class="form-control mb-2" placeholder="Очки" />
           <textarea v-model="playerToEdit.description" class="form-control mb-2" placeholder="Описание"></textarea>
-          <div class="form-check">
-            <input v-model="playerToEdit.won" class="form-check-input" type="checkbox" id="editWon">
-            <label class="form-check-label" for="editWon">Победа</label>
-          </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
