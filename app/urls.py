@@ -10,7 +10,7 @@ from venue.api import (
 
 router = DefaultRouter()
 router.register('venues', VenueViewSet, basename='venue')
-router.register('sessions', SessionViewSet, basename='session')
+router.register('sessions', SessionViewSet, basename='sessions')
 router.register('bookings', BookingViewSet, basename='booking')
 router.register('rounds', RoundViewSet, basename='round')
 router.register('round-players', RoundPlayerViewSet, basename='round-player')

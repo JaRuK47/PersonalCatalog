@@ -8,7 +8,10 @@ const users = ref([]);
 const bookingStats = ref({ count: 0, active_count: 0, no_show_count: 0 });
 const bookingToAdd = ref({ user: null, session: null, leave_time: null, status: 'active' });
 const bookingToEdit = ref({});
-const filterUserId = ref('');
+
+const filterUser = ref('');
+const filterSession = ref('');
+const filterStatus = ref('');
 const displayLimit = ref(50);
 
 async function fetchUsersAndSessions() {
@@ -16,23 +19,39 @@ async function fetchUsersAndSessions() {
   sessions.value = s.data; users.value = u.data;
 }
 
+function buildQueryString() {
+  const params = new URLSearchParams();
+  if (filterUser.value) params.append('user', filterUser.value);
+  if (filterSession.value) params.append('session', filterSession.value);
+  if (filterStatus.value) params.append('status', filterStatus.value);
+  return params.toString();
+}
+
 async function fetchBookings() {
-  const url = filterUserId.value ? `/api/bookings/?user=${filterUserId.value}` : '/api/bookings/';
+  const query = buildQueryString();
+  const url = `/api/bookings/${query ? '?' + query : ''}`;
   const b = await axios.get(url);
   bookings.value = b.data;
   displayLimit.value = 50;
 }
 
 async function fetchStats() {
-  const url = filterUserId.value ? `/api/bookings/stats/?user=${filterUserId.value}` : '/api/bookings/stats/';
+  const query = buildQueryString();
+  const url = `/api/bookings/stats/${query ? '?' + query : ''}`;
   const r = await axios.get(url);
   bookingStats.value = r.data;
 }
 
-watch(filterUserId, () => {
+watch([filterUser, filterSession, filterStatus], () => {
   fetchBookings();
   fetchStats();
 });
+
+function resetFilters() {
+  filterUser.value = '';
+  filterSession.value = '';
+  filterStatus.value = '';
+}
 
 async function onBookingAdd() {
   const payload = { ...bookingToAdd.value };
@@ -84,7 +103,7 @@ onMounted(async () => {
   <div class="row mb-4">
     <div class="col-md-4">
       <div class="card bg-primary text-white shadow-sm text-center py-3">
-        <h5 class="mb-0">Всего броней</h5>
+        <h5 class="mb-0">Найдено броней</h5>
         <h2 class="mb-0">{{ bookingStats.count }}</h2>
       </div>
     </div>
@@ -103,12 +122,32 @@ onMounted(async () => {
   </div>
 
   <div class="row g-2 mb-3 bg-white p-3 rounded shadow-sm align-items-end">
-    <div class="col-md-4">
-      <label class="form-label small mb-0 fw-bold">Фильтр по пользователю</label>
-      <select v-model="filterUserId" class="form-select">
-        <option value="">Показать всех пользователей</option>
+    <div class="col-md-3">
+      <label class="form-label small mb-0 fw-bold">Пользователь</label>
+      <select v-model="filterUser" class="form-select">
+        <option value="">Все пользователи</option>
         <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }}</option>
       </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small mb-0 fw-bold">Сессия</label>
+      <select v-model="filterSession" class="form-select">
+        <option value="">Все сессии</option>
+        <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.date }} ({{ s.title }})</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small mb-0 fw-bold">Статус</label>
+      <select v-model="filterStatus" class="form-select">
+        <option value="">Все статусы</option>
+        <option value="active">Активно (Игра еще не прошла)</option>
+        <option value="attended">Явился (Игра прошла)</option>
+        <option value="no_show">Неявка</option>
+        <option value="cancelled">Отменено</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-outline-secondary w-100" @click="resetFilters">Сбросить</button>
     </div>
   </div>
 

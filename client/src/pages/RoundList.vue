@@ -1,11 +1,12 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, watch } from 'vue';
 import axios from 'axios';
 import useProfileStore from '@/stores/profileStore';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const profileStore = useProfileStore();
+
 const rounds = ref([]);
 const sessions = ref([]);
 const users = ref([]);
@@ -15,31 +16,53 @@ const roundStats = ref({ count: 0, mafia_wins: 0, town_wins: 0 });
 const roundToAdd = ref({ session: null, number: 1, host: null, game_mode: null, description: '' });
 const roundToEdit = ref({});
 
+const filterSession = ref('');
+const filterHost = ref('');
+const filterGameMode = ref('');
 const searchSession = ref('');
 const searchHost = ref('');
 
-async function fetchAll() {
-  const [r, s, u, g] = await Promise.all([
-    axios.get('/api/rounds/'),
+async function fetchDependencies() {
+  const [s, u, g] = await Promise.all([
     axios.get('/api/sessions/'),
     axios.get('/api/users/'),
     axios.get('/api/game-modes/')
   ]);
-  rounds.value = r.data;
   sessions.value = s.data;
   users.value = u.data;
   gameModes.value = g.data;
 }
 
+function buildQueryString() {
+  const params = new URLSearchParams();
+  if (filterSession.value) params.append('session', filterSession.value);
+  if (filterHost.value) params.append('host', filterHost.value);
+  if (filterGameMode.value) params.append('game_mode', filterGameMode.value);
+  return params.toString();
+}
+
+async function fetchRounds() {
+  const query = buildQueryString();
+  const url = `/api/rounds/${query ? '?' + query : ''}`;
+  const r = await axios.get(url);
+  rounds.value = r.data;
+}
+
 async function fetchStats() {
-  const r = await axios.get('/api/rounds/stats/');
+  const query = buildQueryString();
+  const url = `/api/rounds/stats/${query ? '?' + query : ''}`;
+  const r = await axios.get(url);
   roundStats.value = r.data;
 }
+
+watch([filterSession, filterHost, filterGameMode], () => {
+  fetchRounds();
+  fetchStats();
+});
 
 const availableSessions = computed(() => {
   const today = new Date().toISOString().split('T')[0];
   let list = sessions.value.filter(s => s.date <= today);
-
   if (searchSession.value) {
     const q = searchSession.value.toLowerCase();
     list = list.filter(s => s.date.includes(q) || s.title.toLowerCase().includes(q));
@@ -57,7 +80,7 @@ async function onRoundAdd() {
   try {
     await axios.post('/api/rounds/', roundToAdd.value);
     roundToAdd.value = { session: null, number: 1, host: null, game_mode: null, description: '' };
-    await fetchAll();
+    await fetchRounds();
     await fetchStats();
   } catch (e) {
     alert('Ошибка! Партия с таким номером уже существует.');
@@ -65,10 +88,11 @@ async function onRoundAdd() {
 }
 
 function onEditClick(r) { roundToEdit.value = { ...r }; }
+
 async function onUpdateRound() {
   try {
     await axios.put(`/api/rounds/${roundToEdit.value.id}/`, roundToEdit.value);
-    await fetchAll();
+    await fetchRounds();
     await fetchStats();
   } catch (e) {
     alert('Ошибка! Партия с таким номером уже существует.');
@@ -78,8 +102,14 @@ async function onUpdateRound() {
 async function onRemoveClick(r) {
   if(!confirm('Удалить партию?')) return;
   await axios.delete(`/api/rounds/${r.id}/`);
-  await fetchAll();
+  await fetchRounds();
   await fetchStats();
+}
+
+function resetFilters() {
+  filterSession.value = '';
+  filterHost.value = '';
+  filterGameMode.value = '';
 }
 
 const groupedRounds = computed(() => {
@@ -100,9 +130,10 @@ const groupedRounds = computed(() => {
 function userName(id) { return users.value.find(u => u.id === id)?.username || 'Неизвестен'; }
 function gameModeName(id) { return gameModes.value.find(g => g.id === id)?.name || '—'; }
 
-onMounted(() => {
-  fetchAll();
-  fetchStats();
+onMounted(async () => {
+  await fetchDependencies();
+  await fetchRounds();
+  await fetchStats();
 });
 </script>
 
@@ -112,7 +143,7 @@ onMounted(() => {
   <div class="row mb-4">
     <div class="col-md-4">
       <div class="card bg-primary text-white shadow-sm text-center py-3">
-        <h5 class="mb-0">Всего партий</h5>
+        <h5 class="mb-0">Найдено партий</h5>
         <h2 class="mb-0">{{ roundStats.count }}</h2>
       </div>
     </div>
@@ -127,6 +158,33 @@ onMounted(() => {
         <h5 class="mb-0">Побед Мирных</h5>
         <h2 class="mb-0">{{ roundStats.town_wins }}</h2>
       </div>
+    </div>
+  </div>
+
+  <div class="row g-2 mb-3 bg-white p-3 rounded shadow-sm align-items-end">
+    <div class="col-md-3">
+      <label class="form-label small mb-0 fw-bold">Сессия</label>
+      <select v-model="filterSession" class="form-select">
+        <option value="">Все сессии</option>
+        <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.date }} ({{ s.title }})</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small mb-0 fw-bold">Ведущий</label>
+      <select v-model="filterHost" class="form-select">
+        <option value="">Все ведущие</option>
+        <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }}</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small mb-0 fw-bold">Режим</label>
+      <select v-model="filterGameMode" class="form-select">
+        <option value="">Все режимы</option>
+        <option v-for="g in gameModes" :key="g.id" :value="g.id">{{ g.name }}</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-outline-secondary w-100" @click="resetFilters">Сбросить фильтры</button>
     </div>
   </div>
 

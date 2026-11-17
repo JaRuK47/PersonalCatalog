@@ -1,8 +1,13 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, watch } from 'vue';
 import axios from 'axios';
 import useProfileStore from '@/stores/profileStore';
 import { useRouter } from 'vue-router';
+import SessionCard from '@/components/sessions/SessionCard.vue';
+import SessionTableRow from '@/components/sessions/SessionTableRow.vue';
+import SessionEditModal from '@/components/modals/SessionEditModal.vue';
+import BookingModal from '@/components/modals/BookingModal.vue';
+import ImageModal from '@/components/modals/ImageModal.vue';
 
 const router = useRouter();
 const profileStore = useProfileStore();
@@ -14,47 +19,82 @@ const gameModes = ref([]);
 const sessionStats = ref({ count: 0, cancelled_count: 0 });
 
 const sessionToAdd = ref({ venue: null, date: '', start_time: '', title: 'Игра', game_mode: null, description: '', max_players: 11 });
+
+const showEditModal = ref(false);
 const sessionToEdit = ref({});
+
 const showBookingModal = ref(false);
 const selectedSession = ref(null);
+
+const showImageModal = ref(false);
 const selectedImageForModal = ref(null);
 
+const filterVenue = ref('');
+const filterGameMode = ref('');
+const filterStatus = ref('');
+
 const newGameModeName = ref('');
+const showAddModeModal = ref(false);
 
 const addPictureRef = ref();
 const addImageUrl = ref();
-const editPictureRef = ref();
-const editImageUrl = ref();
 
-async function fetchAll() {
-  const [s, v, b, u, g] = await Promise.all([
-    axios.get('/api/sessions/'),
+async function fetchDependencies() {
+  const [v, u, g] = await Promise.all([
     axios.get('/api/venues/'),
-    axios.get('/api/bookings/'),
     axios.get('/api/users/'),
     axios.get('/api/game-modes/')
   ]);
-  sessions.value = s.data;
   venues.value = v.data;
-  allBookings.value = b.data;
   users.value = u.data;
   gameModes.value = g.data;
 }
 
+function buildQueryString() {
+  const params = new URLSearchParams();
+  if (filterVenue.value) params.append('venue', filterVenue.value);
+  if (filterGameMode.value) params.append('game_mode', filterGameMode.value);
+  if (filterStatus.value) params.append('status', filterStatus.value);
+  return params.toString();
+}
+
+async function fetchSessions() {
+  const query = buildQueryString();
+  const url = `/api/sessions/${query ? '?' + query : ''}`;
+  const [s, b] = await Promise.all([
+    axios.get(url),
+    axios.get('/api/bookings/')
+  ]);
+  sessions.value = s.data;
+  allBookings.value = b.data;
+}
+
 async function fetchStats() {
-  const r = await axios.get('/api/sessions/stats/');
+  const query = buildQueryString();
+  const url = `/api/sessions/stats/${query ? '?' + query : ''}`;
+  const r = await axios.get(url);
   sessionStats.value = r.data;
+}
+
+watch([filterVenue, filterGameMode, filterStatus], () => {
+  fetchSessions();
+  fetchStats();
+});
+
+function resetFilters() {
+  filterVenue.value = '';
+  filterGameMode.value = '';
+  filterStatus.value = '';
 }
 
 async function addGameMode() {
   if (!newGameModeName.value) return;
   try {
     const r = await axios.post('/api/game-modes/', { name: newGameModeName.value });
-    await fetchAll();
+    await fetchDependencies();
     sessionToAdd.value.game_mode = r.data.id;
     newGameModeName.value = '';
-    const modal = window.bootstrap.Modal.getInstance(document.getElementById('addModeModal'));
-    if (modal) modal.hide();
+    showAddModeModal.value = false;
   } catch (e) {
     alert('Такой режим уже существует!');
   }
@@ -85,51 +125,46 @@ async function onSessionAdd() {
   sessionToAdd.value = { venue: null, date: '', start_time: '', title: 'Игра', game_mode: null, description: '', max_players: 11 };
   addImageUrl.value = null;
   addPictureRef.value.value = '';
-  await fetchAll();
+  await fetchSessions();
   await fetchStats();
 }
 
-function onEditClick(s) {
-  sessionToEdit.value = { ...s };
-  editImageUrl.value = s.picture;
+function openEditModal(s) {
+  sessionToEdit.value = s;
+  showEditModal.value = true;
 }
 
-function onEditPictureChange() {
-  if (editPictureRef.value.files[0]) {
-    editImageUrl.value = URL.createObjectURL(editPictureRef.value.files[0]);
-  }
-}
-
-async function onUpdateSession() {
+async function handleSaveSession({ form, pictureFile }) {
   const formData = new FormData();
-  formData.set('venue', sessionToEdit.value.venue);
-  formData.set('date', sessionToEdit.value.date);
-  formData.set('start_time', sessionToEdit.value.start_time);
-  formData.set('title', sessionToEdit.value.title);
-  formData.set('game_mode', sessionToEdit.value.game_mode);
-  formData.set('description', sessionToEdit.value.description || '');
-  formData.set('max_players', sessionToEdit.value.max_players);
+  formData.set('venue', form.venue);
+  formData.set('date', form.date);
+  formData.set('start_time', form.start_time);
+  formData.set('title', form.title);
+  formData.set('game_mode', form.game_mode);
+  formData.set('description', form.description || '');
+  formData.set('max_players', form.max_players);
 
-  if (editPictureRef.value.files[0]) {
-    formData.append('picture', editPictureRef.value.files[0]);
+  if (pictureFile) {
+    formData.append('picture', pictureFile);
   }
 
-  await axios.patch(`/api/sessions/${sessionToEdit.value.id}/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-  await fetchAll();
+  await axios.patch(`/api/sessions/${form.id}/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+  showEditModal.value = false;
+  await fetchSessions();
   await fetchStats();
 }
 
 async function onRemoveClick(s) {
   if(!confirm('Удалить сессию полностью?')) return;
   await axios.delete(`/api/sessions/${s.id}/`);
-  await fetchAll();
+  await fetchSessions();
   await fetchStats();
 }
 
 async function cancelSession(s) {
   if(!confirm('Отменить сессию?')) return;
   await axios.patch(`/api/sessions/${s.id}/`, { is_cancelled: true });
-  await fetchAll();
+  await fetchSessions();
   await fetchStats();
 }
 
@@ -149,7 +184,7 @@ function myBooking(sessionId) {
 async function bookPlace() {
   await axios.post('/api/bookings/', { session: selectedSession.value.id, status: 'active' });
   alert('Вы успешно забронировали место!');
-  await fetchAll();
+  await fetchSessions();
 }
 
 async function cancelBooking() {
@@ -157,13 +192,12 @@ async function cancelBooking() {
   if (!b) return;
   if(!confirm('Отменить бронь?')) return;
   await axios.delete(`/api/bookings/${b.id}/`);
-  await fetchAll();
+  await fetchSessions();
   showBookingModal.value = false;
 }
 
 const sortedSessions = computed(() => {
   let result = sessions.value.slice();
-
   if (!profileStore.isManager) {
     const twoDaysAgo = new Date();
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
@@ -187,15 +221,15 @@ function venueName(id) { return venues.value.find(v => v.id === id)?.name || '�
 function gameModeName(id) { return gameModes.value.find(g => g.id === id)?.name || '—'; }
 function isPast(s) { return new Date(`${s.date}T${s.start_time}`) < new Date(); }
 
-function openModal(url) {
+function openImageModal(url) {
   selectedImageForModal.value = url;
-  const modal = new window.bootstrap.Modal(document.getElementById('imageModal'));
-  modal.show();
+  showImageModal.value = true;
 }
 
-onMounted(() => {
-  fetchAll();
-  fetchStats();
+onMounted(async () => {
+  await fetchDependencies();
+  await fetchSessions();
+  await fetchStats();
 });
 </script>
 
@@ -205,7 +239,7 @@ onMounted(() => {
   <div class="row mb-4">
     <div class="col-md-6">
       <div class="card bg-primary text-white shadow-sm text-center py-3">
-        <h5 class="mb-0">Всего сессий в базе</h5>
+        <h5 class="mb-0">Найдено сессий</h5>
         <h2 class="mb-0">{{ sessionStats.count }}</h2>
       </div>
     </div>
@@ -214,6 +248,34 @@ onMounted(() => {
         <h5 class="mb-0">Отмененных игр</h5>
         <h2 class="mb-0">{{ sessionStats.cancelled_count }}</h2>
       </div>
+    </div>
+  </div>
+
+  <div class="row g-2 mb-3 bg-white p-3 rounded shadow-sm align-items-end">
+    <div class="col-md-3">
+      <label class="form-label small mb-0 fw-bold">Локация</label>
+      <select v-model="filterVenue" class="form-select">
+        <option value="">Все локации</option>
+        <option v-for="v in venues" :key="v.id" :value="v.id">{{ v.name }}</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small mb-0 fw-bold">Режим игры</label>
+      <select v-model="filterGameMode" class="form-select">
+        <option value="">Все режимы</option>
+        <option v-for="g in gameModes" :key="g.id" :value="g.id">{{ g.name }}</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small mb-0 fw-bold">Статус</label>
+      <select v-model="filterStatus" class="form-select">
+        <option value="">Все сессии</option>
+        <option value="active">Активные (не отменены)</option>
+        <option value="cancelled">Только отмененные</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-outline-secondary w-100" @click="resetFilters">Сбросить</button>
     </div>
   </div>
 
@@ -244,7 +306,7 @@ onMounted(() => {
           <option disabled :value="null">Выбрать</option>
           <option v-for="g in gameModes" :key="g.id" :value="g.id">{{ g.name }}</option>
         </select>
-        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#addModeModal" title="Добавить новый режим">+</button>
+        <button class="btn btn-outline-secondary" type="button" @click="showAddModeModal = true" title="Добавить новый режим">+</button>
       </div>
     </div>
     <div class="col-md-4 mt-2">
@@ -274,139 +336,76 @@ onMounted(() => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="s in sortedSessions" :key="s.id" :class="{'table-danger': s.is_cancelled}">
-          <td>
-            <div v-show="s.picture">
-              <img :src="s.picture" style="width: 80px; height: 50px; object-fit: cover; border-radius: 5px; cursor: pointer;" @click="openModal(s.picture)" />
-            </div>
-          </td>
-          <td>{{ s.date }} в {{ s.start_time }}</td>
-          <td><b>{{ s.title }}</b> <br><small class="text-muted">{{ gameModeName(s.game_mode) }}</small></td>
-          <td>{{ venueName(s.venue) }}</td>
-          <td>
-            <span class="badge" :class="{'bg-danger': s.status === 'Отменена', 'bg-success': s.status === 'Идёт набор', 'bg-warning text-dark': s.status === 'Активно', 'bg-secondary': s.status === 'Завершена'}">{{ s.status }}</span>
-          </td>
-          <td>
-            <button class="btn btn-sm btn-success me-1" data-bs-toggle="modal" data-bs-target="#editSessionModal" @click="onEditClick(s)">Ред.</button>
-            <button v-if="!s.is_cancelled && !isPast(s)" class="btn btn-sm btn-warning me-1" @click="cancelSession(s)">Отменить</button>
-            <button class="btn btn-sm btn-danger" @click="onRemoveClick(s)">Удалить</button>
-          </td>
-        </tr>
+        <SessionTableRow
+          v-for="s in sortedSessions"
+          :key="s.id"
+          :session="s"
+          :venue-name="venueName(s.venue)"
+          :game-mode-name="gameModeName(s.game_mode)"
+          :is-past="isPast(s)"
+          @edit="openEditModal"
+          @cancel="cancelSession"
+          @remove="onRemoveClick"
+          @open-image="openImageModal"
+        />
       </tbody>
     </table>
   </div>
 
   <div v-else class="row">
     <div class="col-md-4 mb-3" v-for="s in sortedSessions" :key="s.id">
-      <div class="card shadow-sm h-100" :class="{'border-danger border-2': s.is_cancelled}">
-        <img v-if="s.picture" :src="s.picture" class="card-img-top" style="height: 300px; object-fit: cover; cursor: pointer;" @click="openModal(s.picture)" />
-        <div class="card-body">
-          <h4 class="card-title">{{ s.title }} <span v-if="s.is_cancelled" class="badge bg-danger fs-6">Отменена</span></h4>
-          <h6 class="card-subtitle mb-2 text-primary">{{ gameModeName(s.game_mode) }}</h6>
-          <p class="card-text text-muted mb-1"><b>{{ s.date }}</b> в {{ s.start_time }}</p>
-          <p class="card-text mb-2">{{ venueName(s.venue) }}</p>
-          <p class="card-text small">{{ s.description }}</p>
-          <hr>
-          <p>Статус: <b>{{ s.status }}</b></p>
-          <button v-if="!s.is_cancelled" class="btn w-100" :class="myBooking(s.id) ? 'btn-outline-danger' : 'btn-primary'" @click="handleBookClick(s)">
-            {{ myBooking(s.id) ? 'Вы записаны (Управление)' : 'Забронировать' }}
-          </button>
-        </div>
-      </div>
+      <SessionCard
+        :session="s"
+        :venue-name="venueName(s.venue)"
+        :game-mode-name="gameModeName(s.game_mode)"
+        :is-booked="!!myBooking(s.id)"
+        @book="handleBookClick"
+        @open-image="openImageModal"
+      />
     </div>
   </div>
 
-  <div v-if="showBookingModal" class="modal fade show d-block" style="background: rgba(0,0,0,0.6);" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content" v-if="selectedSession">
-        <div class="modal-header">
-          <h5 class="modal-title">{{ selectedSession.title }} | {{ selectedSession.date }}</h5>
-          <button type="button" class="btn-close" @click="showBookingModal = false"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <h6>Режим:</h6> <p>{{ gameModeName(selectedSession.game_mode) }}</p>
-            <h6>Описание:</h6> <p>{{ selectedSession.description }}</p>
-            <h6>Локация:</h6> <p>{{ venueName(selectedSession.venue) }}</p>
-          </div>
-          <h5 class="mt-4 border-top pt-3">Список игроков ({{ selectedSession.booked_users.length }}):</h5>
-          <ul class="list-group">
-            <li class="list-group-item" v-for="(uname, idx) in selectedSession.booked_users" :key="idx">{{ uname }}</li>
-            <li class="list-group-item text-muted" v-if="selectedSession.booked_users.length === 0">Пока никого нет</li>
-          </ul>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showBookingModal = false">Закрыть</button>
-          <button v-if="!myBooking(selectedSession.id)" class="btn btn-success" @click="bookPlace">Забронировать</button>
-          <button v-else class="btn btn-danger" @click="cancelBooking">Отменить мою бронь</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <BookingModal
+    v-if="showBookingModal"
+    :session="selectedSession"
+    :booked-users="selectedSession?.booked_users || []"
+    :is-booked-by-me="!!myBooking(selectedSession?.id)"
+    :venue-name="venueName(selectedSession?.venue)"
+    :game-mode-name="gameModeName(selectedSession?.game_mode)"
+    @close="showBookingModal = false"
+    @book="bookPlace"
+    @cancel="cancelBooking"
+  />
 
-  <div class="modal fade" id="addModeModal" tabindex="-1">
+  <SessionEditModal
+    v-if="showEditModal"
+    :session="sessionToEdit"
+    :venues="venues"
+    :game-modes="gameModes"
+    @close="showEditModal = false"
+    @save="handleSaveSession"
+  />
+
+  <ImageModal
+    v-if="showImageModal"
+    :url="selectedImageForModal"
+    @close="showImageModal = false"
+  />
+
+  <div v-if="showAddModeModal" class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Новый режим игры</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close" @click="showAddModeModal = false"></button>
         </div>
         <div class="modal-body">
           <label class="form-label">Название режима</label>
           <input v-model="newGameModeName" class="form-control" placeholder="Например: Городская мафия" />
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-          <button class="btn btn-primary" data-bs-dismiss="modal" @click="addGameMode">Добавить</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal fade" id="editSessionModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Редактировать сессию</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <label class="form-label small mb-0">Место</label>
-          <select v-model.number="sessionToEdit.venue" class="form-select mb-2">
-            <option v-for="v in venues" :key="v.id" :value="v.id">{{ v.name }}</option>
-          </select>
-          <label class="form-label small mb-0">Дата</label>
-          <input v-model="sessionToEdit.date" type="date" class="form-control mb-2" />
-          <label class="form-label small mb-0">Время</label>
-          <input v-model="sessionToEdit.start_time" type="time" class="form-control mb-2" />
-          <label class="form-label small mb-0">Название</label>
-          <input v-model="sessionToEdit.title" class="form-control mb-2" placeholder="Название" />
-          <label class="form-label small mb-0">Режим</label>
-          <select v-model.number="sessionToEdit.game_mode" class="form-select mb-2">
-            <option v-for="g in gameModes" :key="g.id" :value="g.id">{{ g.name }}</option>
-          </select>
-          <label class="form-label small mb-0">Описание</label>
-          <textarea v-model="sessionToEdit.description" class="form-control mb-2" placeholder="Описание"></textarea>
-          <label class="form-label small mb-0">Обновить постер</label>
-          <input class="form-control mb-2" type="file" ref="editPictureRef" @change="onEditPictureChange" />
-          <div class="text-center" v-show="editImageUrl">
-            <img :src="editImageUrl" style="max-height: 100px; border-radius: 5px;" />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-          <button class="btn btn-primary" data-bs-dismiss="modal" @click="onUpdateSession">Сохранить</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal fade" id="imageModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content bg-transparent border-0">
-        <div class="modal-body text-center p-0 position-relative">
-          <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" style="z-index: 1055;"></button>
-          <img :src="selectedImageForModal" class="img-fluid rounded shadow-lg" />
+          <button class="btn btn-secondary" @click="showAddModeModal = false">Отмена</button>
+          <button class="btn btn-primary" @click="addGameMode">Добавить</button>
         </div>
       </div>
     </div>
