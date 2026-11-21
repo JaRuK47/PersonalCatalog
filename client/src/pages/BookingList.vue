@@ -1,22 +1,33 @@
 <script setup>
 import { onMounted, ref, watch, computed } from 'vue';
 import axios from 'axios';
+import { downloadExcel } from '@/utils/excel';
+import BookingTableRow from '@/components/bookings/BookingTableRow.vue';
+import BookingEditModal from '@/components/modals/BookingEditModal.vue';
+import Pagination from '@/components/Pagination.vue';
 
 const bookings = ref([]);
 const sessions = ref([]);
 const users = ref([]);
 const bookingStats = ref({ count: 0, active_count: 0, no_show_count: 0 });
 const bookingToAdd = ref({ user: null, session: null, leave_time: null, status: 'active' });
+const showEditModal = ref(false);
 const bookingToEdit = ref({});
 
 const filterUser = ref('');
 const filterSession = ref('');
 const filterStatus = ref('');
-const displayLimit = ref(50);
+
+const sortKey = ref('date');
+const sortOrder = ref('desc');
+
+const currentPage = ref(1);
+const itemsPerPage = ref(10);
 
 async function fetchUsersAndSessions() {
   const [s, u] = await Promise.all([axios.get('/api/sessions/'), axios.get('/api/users/')]);
-  sessions.value = s.data; users.value = u.data;
+  sessions.value = s.data;
+  users.value = u.data;
 }
 
 function buildQueryString() {
@@ -32,7 +43,6 @@ async function fetchBookings() {
   const url = `/api/bookings/${query ? '?' + query : ''}`;
   const b = await axios.get(url);
   bookings.value = b.data;
-  displayLimit.value = 50;
 }
 
 async function fetchStats() {
@@ -43,6 +53,7 @@ async function fetchStats() {
 }
 
 watch([filterUser, filterSession, filterStatus], () => {
+  currentPage.value = 1;
   fetchBookings();
   fetchStats();
 });
@@ -51,6 +62,17 @@ function resetFilters() {
   filterUser.value = '';
   filterSession.value = '';
   filterStatus.value = '';
+  currentPage.value = 1;
+}
+
+function sortBy(key) {
+  if (sortKey.value === key) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortKey.value = key;
+    sortOrder.value = 'asc';
+  }
+  currentPage.value = 1;
 }
 
 async function onBookingAdd() {
@@ -62,16 +84,20 @@ async function onBookingAdd() {
   await fetchStats();
 }
 
-function onEditClick(b) { bookingToEdit.value = { ...b }; }
+function openEditModal(b) {
+  bookingToEdit.value = b;
+  showEditModal.value = true;
+}
 
-async function onUpdateBooking() {
+async function handleSaveBooking(form) {
   const payload = {
-    user: bookingToEdit.value.user,
-    session: bookingToEdit.value.session,
-    status: bookingToEdit.value.status,
-    leave_time: bookingToEdit.value.leave_time || null
+    user: form.user,
+    session: form.session,
+    status: form.status,
+    leave_time: form.leave_time || null
   };
-  await axios.put(`/api/bookings/${bookingToEdit.value.id}/`, payload);
+  await axios.put(`/api/bookings/${form.id}/`, payload);
+  showEditModal.value = false;
   await fetchBookings();
   await fetchStats();
 }
@@ -83,12 +109,46 @@ async function onRemoveClick(b) {
   await fetchStats();
 }
 
-function sessionLabel(id) {
+function getSessionLabel(id) {
   const s = sessions.value.find(x => x.id === id);
   return s ? `${s.date} ${s.start_time} (${s.title})` : id;
 }
 
-const displayedBookings = computed(() => bookings.value.slice(0, displayLimit.value));
+function isSessionCancelled(id) {
+  const s = sessions.value.find(x => x.id === id);
+  return s ? s.is_cancelled : false;
+}
+
+const sortedBookings = computed(() => {
+  let result = bookings.value.slice();
+  result.sort((a, b) => {
+    let valA, valB;
+    if (sortKey.value === 'user') {
+      valA = a.user_name.toLowerCase();
+      valB = b.user_name.toLowerCase();
+    } else if (sortKey.value === 'session') {
+      valA = getSessionLabel(a.session);
+      valB = getSessionLabel(b.session);
+    } else if (sortKey.value === 'status') {
+      valA = a.status_display;
+      valB = b.status_display;
+    }
+    if (valA < valB) return sortOrder.value === 'asc' ? -1 : 1;
+    if (valA > valB) return sortOrder.value === 'asc' ? 1 : -1;
+    return 0;
+  });
+  return result;
+});
+
+const paginatedBookings = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return sortedBookings.value.slice(start, end);
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(sortedBookings.value.length / itemsPerPage.value);
+});
 
 onMounted(async () => {
   await fetchUsersAndSessions();
@@ -136,7 +196,7 @@ onMounted(async () => {
         <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.date }} ({{ s.title }})</option>
       </select>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
       <label class="form-label small mb-0 fw-bold">Статус</label>
       <select v-model="filterStatus" class="form-select">
         <option value="">Все статусы</option>
@@ -146,8 +206,11 @@ onMounted(async () => {
         <option value="cancelled">Отменено</option>
       </select>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
       <button class="btn btn-outline-secondary w-100" @click="resetFilters">Сбросить</button>
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-success w-100" @click="downloadExcel(`/api/bookings/export/?${buildQueryString()}`, 'bookings_export.xlsx')">Экспорт в Excel</button>
     </div>
   </div>
 
@@ -174,52 +237,36 @@ onMounted(async () => {
 
   <table class="table table-striped align-middle shadow-sm bg-white">
     <thead class="table-dark">
-      <tr><th>Кто</th><th>Сессия</th><th>Уходит</th><th>Статус</th><th>Действия</th></tr>
+      <tr>
+        <th style="cursor: pointer;" @click="sortBy('user')">Кто {{ sortKey === 'user' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
+        <th style="cursor: pointer;" @click="sortBy('session')">Сессия {{ sortKey === 'session' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
+        <th>Уходит</th>
+        <th style="cursor: pointer;" @click="sortBy('status')">Статус {{ sortKey === 'status' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
+        <th>Действия</th>
+      </tr>
     </thead>
     <tbody>
-      <tr v-for="b in displayedBookings" :key="b.id">
-        <td>{{ b.user_name }}</td>
-        <td>
-          {{ sessionLabel(b.session) }}
-          <span v-if="sessions.find(s => s.id === b.session)?.is_cancelled" class="badge bg-danger ms-2">Игра отменена</span>
-        </td>
-        <td>{{ b.leave_time || '—' }}</td>
-        <td>{{ b.status_display }}</td>
-        <td>
-          <button class="btn btn-sm btn-success me-1" data-bs-toggle="modal" data-bs-target="#editBookingModal" @click="onEditClick(b)">Ред.</button>
-          <button class="btn btn-sm btn-danger" @click="onRemoveClick(b)">Удал.</button>
-        </td>
-      </tr>
+      <BookingTableRow
+        v-for="b in paginatedBookings"
+        :key="b.id"
+        :booking="b"
+        :session-info="getSessionLabel(b.session)"
+        :is-cancelled="isSessionCancelled(b.session)"
+        @edit="openEditModal"
+        @remove="onRemoveClick"
+      />
     </tbody>
   </table>
 
-  <div class="text-center mb-5" v-if="bookings.length > displayLimit">
-    <button class="btn btn-outline-secondary" @click="displayLimit += 50">Показать ещё 50</button>
-  </div>
+  <Pagination
+    v-model:current-page="currentPage"
+    :total-pages="totalPages"
+  />
 
-  <div class="modal fade" id="editBookingModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Редактировать бронь</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <label class="form-label">Статус брони:</label>
-          <select v-model="bookingToEdit.status" class="form-select mb-2">
-            <option value="active">Активно (Ждем)</option>
-            <option value="attended">Явился</option>
-            <option value="no_show">Неявка</option>
-            <option value="cancelled">Отменено</option>
-          </select>
-          <label class="form-label">Время ухода:</label>
-          <input v-model="bookingToEdit.leave_time" type="time" class="form-control" />
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-          <button class="btn btn-primary" data-bs-dismiss="modal" @click="onUpdateBooking">Сохранить</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <BookingEditModal
+    v-if="showEditModal"
+    :booking="bookingToEdit"
+    @close="showEditModal = false"
+    @save="handleSaveBooking"
+  />
 </template>

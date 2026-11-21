@@ -1,20 +1,29 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import axios from 'axios';
 import useProfileStore from '@/stores/profileStore';
+import { downloadExcel } from '@/utils/excel';
 import VenueCarousel from '@/components/VenueCarousel.vue';
+import VenueTableRow from '@/components/venues/VenueTableRow.vue';
+import VenueEditModal from '@/components/modals/VenueEditModal.vue';
+import ImageModal from '@/components/modals/ImageModal.vue';
+import Pagination from '@/components/Pagination.vue';
 
 const profileStore = useProfileStore();
 const venues = ref([]);
 const venueStats = ref({ count: 0, avg_capacity: 0, max_capacity: 0, min_capacity: 0 });
 const venueToAdd = ref({ name: '', address: '', description: '', capacity: 11 });
+
+const showEditModal = ref(false);
 const venueToEdit = ref({});
+const showImageModal = ref(false);
+const selectedImageForModal = ref(null);
 
 const addPictureRef = ref();
 const addImageUrl = ref();
-const editPictureRef = ref();
-const editImageUrl = ref();
-const selectedImageForModal = ref(null);
+
+const currentPage = ref(1);
+const itemsPerPage = ref(10);
 
 async function fetchVenues() {
   const r = await axios.get('/api/venues/');
@@ -38,6 +47,7 @@ async function onVenueAdd() {
   }
 
   await axios.post('/api/venues/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+
   venueToAdd.value = { name: '', address: '', description: '', capacity: 11 };
   addImageUrl.value = null;
   addPictureRef.value.value = '';
@@ -45,29 +55,30 @@ async function onVenueAdd() {
   await fetchStats();
 }
 
-function onEditClick(v) {
-  venueToEdit.value = { ...v };
-  editImageUrl.value = v.picture;
-}
-
-function onEditPictureChange() {
-  if (editPictureRef.value.files[0]) {
-    editImageUrl.value = URL.createObjectURL(editPictureRef.value.files[0]);
+function onAddPictureChange() {
+  if (addPictureRef.value.files[0]) {
+    addImageUrl.value = URL.createObjectURL(addPictureRef.value.files[0]);
   }
 }
 
-async function onUpdateVenue() {
+function openEditModal(v) {
+  venueToEdit.value = v;
+  showEditModal.value = true;
+}
+
+async function handleSaveVenue({ form, pictureFile }) {
   const formData = new FormData();
-  formData.set('name', venueToEdit.value.name);
-  formData.set('address', venueToEdit.value.address);
-  formData.set('description', venueToEdit.value.description || '');
-  formData.set('capacity', venueToEdit.value.capacity);
+  formData.set('name', form.name);
+  formData.set('address', form.address);
+  formData.set('description', form.description || '');
+  formData.set('capacity', form.capacity);
 
-  if (editPictureRef.value.files[0]) {
-    formData.append('picture', editPictureRef.value.files[0]);
+  if (pictureFile) {
+    formData.append('picture', pictureFile);
   }
 
-  await axios.patch(`/api/venues/${venueToEdit.value.id}/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+  await axios.patch(`/api/venues/${form.id}/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+  showEditModal.value = false;
   await fetchVenues();
   await fetchStats();
 }
@@ -79,11 +90,20 @@ async function onRemoveClick(venue) {
   await fetchStats();
 }
 
-function openModal(url) {
+function openImageModal(url) {
   selectedImageForModal.value = url;
-  const modal = new window.bootstrap.Modal(document.getElementById('imageModal'));
-  modal.show();
+  showImageModal.value = true;
 }
+
+const paginatedVenues = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return venues.value.slice(start, end);
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(venues.value.length / itemsPerPage.value);
+});
 
 onMounted(() => {
   fetchVenues();
@@ -151,69 +171,46 @@ onMounted(() => {
       </div>
     </form>
 
+    <div class="d-flex justify-content-end mb-3">
+      <button class="btn btn-success" @click="downloadExcel('/api/venues/export/', 'venues_export.xlsx')">Экспорт в Excel</button>
+    </div>
+
     <table class="table table-striped shadow-sm bg-white align-middle">
       <thead class="table-dark">
         <tr><th>Фото</th><th>Название</th><th>Адрес</th><th>Мест</th><th>Описание</th><th>Действия</th></tr>
       </thead>
       <tbody>
-        <tr v-for="v in venues" :key="v.id">
-          <td>
-            <div v-show="v.picture">
-              <img :src="v.picture" style="max-height: 50px; cursor: pointer; border-radius: 5px;" @click="openModal(v.picture)" />
-            </div>
-          </td>
-          <td>{{ v.name }}</td>
-          <td>{{ v.address }}</td>
-          <td>{{ v.capacity }}</td>
-          <td>{{ v.description }}</td>
-          <td>
-            <button class="btn btn-sm btn-success me-1" data-bs-toggle="modal" data-bs-target="#editVenueModal" @click="onEditClick(v)">Ред.</button>
-            <button class="btn btn-sm btn-danger" @click="onRemoveClick(v)">Удал.</button>
-          </td>
-        </tr>
+        <VenueTableRow
+          v-for="v in paginatedVenues"
+          :key="v.id"
+          :venue="v"
+          @edit="openEditModal"
+          @remove="onRemoveClick"
+          @open-image="openImageModal"
+        />
       </tbody>
     </table>
+
+    <Pagination
+      v-model:current-page="currentPage"
+      :total-pages="totalPages"
+    />
   </div>
 
   <div v-else>
-    <VenueCarousel :venues="venues" @open="openModal" />
+    <VenueCarousel :venues="venues" @open="openImageModal" />
   </div>
 
-  <div class="modal fade" id="editVenueModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Редактировать</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-          <label class="form-label small mb-0">Название</label>
-          <input v-model="venueToEdit.name" class="form-control mb-2" />
-          <label class="form-label small mb-0">Адрес</label>
-          <input v-model="venueToEdit.address" class="form-control mb-2" />
-          <label class="form-label small mb-0">Макс. вместимость</label>
-          <input v-model.number="venueToEdit.capacity" type="number" class="form-control mb-2" />
-          <label class="form-label small mb-0">Описание</label>
-          <textarea v-model="venueToEdit.description" class="form-control mb-2"></textarea>
-          <label class="form-label small mb-0">Обновить фото</label>
-          <input class="form-control mb-2" type="file" ref="editPictureRef" @change="onEditPictureChange" />
-          <div class="text-center" v-show="editImageUrl">
-            <img :src="editImageUrl" style="max-height: 100px; border-radius: 5px;" />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-          <button class="btn btn-primary" data-bs-dismiss="modal" @click="onUpdateVenue">Сохранить</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <VenueEditModal
+    v-if="showEditModal"
+    :venue="venueToEdit"
+    @close="showEditModal = false"
+    @save="handleSaveVenue"
+  />
 
-  <div class="modal fade" id="imageModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content bg-transparent border-0">
-        <div class="modal-body text-center p-0 position-relative">
-          <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" style="z-index: 1055;"></button>
-          <img :src="selectedImageForModal" class="img-fluid rounded shadow-lg" />
-        </div>
-      </div>
-    </div>
-  </div>
+  <ImageModal
+    v-if="showImageModal"
+    :url="selectedImageForModal"
+    @close="showImageModal = false"
+  />
 </template>

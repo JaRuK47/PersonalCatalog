@@ -3,11 +3,13 @@ import { onMounted, ref, computed, watch } from 'vue';
 import axios from 'axios';
 import useProfileStore from '@/stores/profileStore';
 import { useRouter } from 'vue-router';
+import { downloadExcel } from '@/utils/excel';
 import SessionCard from '@/components/sessions/SessionCard.vue';
 import SessionTableRow from '@/components/sessions/SessionTableRow.vue';
 import SessionEditModal from '@/components/modals/SessionEditModal.vue';
 import BookingModal from '@/components/modals/BookingModal.vue';
 import ImageModal from '@/components/modals/ImageModal.vue';
+import Pagination from '@/components/Pagination.vue';
 
 const router = useRouter();
 const profileStore = useProfileStore();
@@ -22,10 +24,8 @@ const sessionToAdd = ref({ venue: null, date: '', start_time: '', title: 'Игр
 
 const showEditModal = ref(false);
 const sessionToEdit = ref({});
-
 const showBookingModal = ref(false);
 const selectedSession = ref(null);
-
 const showImageModal = ref(false);
 const selectedImageForModal = ref(null);
 
@@ -38,6 +38,12 @@ const showAddModeModal = ref(false);
 
 const addPictureRef = ref();
 const addImageUrl = ref();
+
+const sortKey = ref('date');
+const sortOrder = ref('desc');
+
+const currentPage = ref(1);
+const itemsPerPage = ref(10);
 
 async function fetchDependencies() {
   const [v, u, g] = await Promise.all([
@@ -77,6 +83,7 @@ async function fetchStats() {
 }
 
 watch([filterVenue, filterGameMode, filterStatus], () => {
+  currentPage.value = 1;
   fetchSessions();
   fetchStats();
 });
@@ -85,6 +92,17 @@ function resetFilters() {
   filterVenue.value = '';
   filterGameMode.value = '';
   filterStatus.value = '';
+  currentPage.value = 1;
+}
+
+function sortBy(key) {
+  if (sortKey.value === key) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortKey.value = key;
+    sortOrder.value = 'asc';
+  }
+  currentPage.value = 1;
 }
 
 async function addGameMode() {
@@ -182,7 +200,11 @@ function myBooking(sessionId) {
 }
 
 async function bookPlace() {
-  await axios.post('/api/bookings/', { session: selectedSession.value.id, status: 'active' });
+  await axios.post('/api/bookings/', {
+    user: profileStore.userId,
+    session: selectedSession.value.id,
+    status: 'active'
+  });
   alert('Вы успешно забронировали место!');
   await fetchSessions();
 }
@@ -198,23 +220,56 @@ async function cancelBooking() {
 
 const sortedSessions = computed(() => {
   let result = sessions.value.slice();
+
   if (!profileStore.isManager) {
     const twoDaysAgo = new Date();
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
     result = result.filter(s => {
       if (s.is_cancelled) return true;
       if (s.status !== 'Завершена') return true;
       return new Date(`${s.date}T${s.start_time}`) >= twoDaysAgo;
     });
+
     result.sort((a, b) => {
       if (a.is_cancelled && !b.is_cancelled) return -1;
       if (!a.is_cancelled && b.is_cancelled) return 1;
-      return new Date(`${b.date}T${b.start_time}`) - new Date(`${a.date}T${a.start_time}`);
+      return new Date(`${a.date}T${a.start_time}`) - new Date(`${b.date}T${b.start_time}`);
     });
   } else {
-    result.sort((a, b) => new Date(`${b.date}T${b.start_time}`) - new Date(`${a.date}T${a.start_time}`));
+    result.sort((a, b) => {
+      let valA, valB;
+      if (sortKey.value === 'date') {
+        valA = new Date(`${a.date}T${a.start_time}`).getTime();
+        valB = new Date(`${b.date}T${b.start_time}`).getTime();
+      } else if (sortKey.value === 'title') {
+        valA = a.title.toLowerCase();
+        valB = b.title.toLowerCase();
+      } else if (sortKey.value === 'venue') {
+        valA = venueName(a.venue).toLowerCase();
+        valB = venueName(b.venue).toLowerCase();
+      } else if (sortKey.value === 'status') {
+        valA = a.status;
+        valB = b.status;
+      }
+
+      if (valA < valB) return sortOrder.value === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder.value === 'asc' ? 1 : -1;
+      return 0;
+    });
   }
+
   return result;
+});
+
+const paginatedSessions = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return sortedSessions.value.slice(start, end);
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(sortedSessions.value.length / itemsPerPage.value);
 });
 
 function venueName(id) { return venues.value.find(v => v.id === id)?.name || '—'; }
@@ -236,7 +291,7 @@ onMounted(async () => {
 <template>
   <h1>Расписание сессий</h1>
 
-  <div class="row mb-4">
+  <div v-if="profileStore.isManager" class="row mb-4">
     <div class="col-md-6">
       <div class="card bg-primary text-white shadow-sm text-center py-3">
         <h5 class="mb-0">Найдено сессий</h5>
@@ -251,7 +306,7 @@ onMounted(async () => {
     </div>
   </div>
 
-  <div class="row g-2 mb-3 bg-white p-3 rounded shadow-sm align-items-end">
+  <div v-if="profileStore.isManager" class="row g-2 mb-3 bg-white p-3 rounded shadow-sm align-items-end">
     <div class="col-md-3">
       <label class="form-label small mb-0 fw-bold">Локация</label>
       <select v-model="filterVenue" class="form-select">
@@ -270,12 +325,17 @@ onMounted(async () => {
       <label class="form-label small mb-0 fw-bold">Статус</label>
       <select v-model="filterStatus" class="form-select">
         <option value="">Все сессии</option>
-        <option value="active">Активные (не отменены)</option>
-        <option value="cancelled">Только отмененные</option>
+        <option value="upcoming">Идёт набор</option>
+        <option value="active">Активно</option>
+        <option value="finished">Завершена</option>
+        <option value="cancelled">Отменена</option>
       </select>
     </div>
     <div class="col-md-2">
       <button class="btn btn-outline-secondary w-100" @click="resetFilters">Сбросить</button>
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-success w-100" @click="downloadExcel(`/api/sessions/export/?${buildQueryString()}`, 'sessions_export.xlsx')">Экспорт в Excel</button>
     </div>
   </div>
 
@@ -328,16 +388,16 @@ onMounted(async () => {
       <thead class="table-dark">
         <tr>
           <th>Постер</th>
-          <th>Дата</th>
-          <th>Игра</th>
-          <th>Место</th>
-          <th>Статус</th>
+          <th style="cursor: pointer;" @click="sortBy('date')">Дата {{ sortKey === 'date' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
+          <th style="cursor: pointer;" @click="sortBy('title')">Игра {{ sortKey === 'title' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
+          <th style="cursor: pointer;" @click="sortBy('venue')">Место {{ sortKey === 'venue' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
+          <th style="cursor: pointer;" @click="sortBy('status')">Статус {{ sortKey === 'status' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
           <th>Действия</th>
         </tr>
       </thead>
       <tbody>
         <SessionTableRow
-          v-for="s in sortedSessions"
+          v-for="s in paginatedSessions"
           :key="s.id"
           :session="s"
           :venue-name="venueName(s.venue)"
@@ -353,7 +413,7 @@ onMounted(async () => {
   </div>
 
   <div v-else class="row">
-    <div class="col-md-4 mb-3" v-for="s in sortedSessions" :key="s.id">
+    <div class="col-md-4 mb-3" v-for="s in paginatedSessions" :key="s.id">
       <SessionCard
         :session="s"
         :venue-name="venueName(s.venue)"
@@ -364,6 +424,11 @@ onMounted(async () => {
       />
     </div>
   </div>
+
+  <Pagination
+    v-model:current-page="currentPage"
+    :total-pages="totalPages"
+  />
 
   <BookingModal
     v-if="showBookingModal"

@@ -3,6 +3,9 @@ import { onMounted, ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import useProfileStore from '@/stores/profileStore';
+import RoundPlayerCard from '@/components/rounds/RoundPlayerCard.vue';
+import RoundPlayerEditModal from '@/components/modals/RoundPlayerEditModal.vue';
+import { downloadExcel } from '@/utils/excel';
 
 const route = useRoute();
 const router = useRouter();
@@ -16,6 +19,7 @@ const allRounds = ref([]);
 const allRoundPlayers = ref([]);
 
 const newPlayer = ref({ user: null, role: 'Мирный', points: 0.0, description: '' });
+const showEditModal = ref(false);
 const playerToEdit = ref({});
 const searchQuery = ref('');
 
@@ -108,9 +112,14 @@ async function copyFromPreviousRound() {
   await fetchData();
 }
 
-function onEditClick(p) { playerToEdit.value = { ...p }; }
-async function updatePlayer() {
-  await axios.put(`/api/round-players/${playerToEdit.value.id}/`, playerToEdit.value);
+function openEditModal(p) {
+  playerToEdit.value = p;
+  showEditModal.value = true;
+}
+
+async function handleSavePlayer(form) {
+  await axios.put(`/api/round-players/${form.id}/`, form);
+  showEditModal.value = false;
   await fetchData();
 }
 
@@ -141,8 +150,9 @@ onMounted(fetchData);
     </div>
 
     <div v-if="profileStore.isManager" class="mb-3">
-      <button class="btn btn-info text-white me-2" @click="addFromBookings">➕ Взять из броней сессии</button>
-      <button class="btn btn-secondary" @click="copyFromPreviousRound">📋 Скопировать из партии #{{ roundInfo.number - 1 }}</button>
+      <button class="btn btn-info text-white me-2" @click="addFromBookings">Взять из броней сессии</button>
+      <button class="btn btn-secondary" @click="copyFromPreviousRound">Скопировать из партии #{{ roundInfo.number - 1 }}</button>
+      <button class="btn btn-success" @click="downloadExcel(`/api/round-players/export/?round=${route.params.id}`, 'round_players_export.xlsx')">Скачать Excel</button>
     </div>
 
     <form v-if="profileStore.isManager" @submit.prevent="addPlayer" class="row g-2 mb-4 bg-light p-3 rounded shadow-sm align-items-end">
@@ -182,53 +192,22 @@ onMounted(fetchData);
 
     <div class="row">
       <div class="col-md-6" v-for="p in players" :key="p.id">
-        <div class="card mb-2 shadow-sm" :class="{'border-success': isWinner(p) === true, 'border-danger': isWinner(p) === false}">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h5 class="mb-0">{{ userName(p.user) }}</h5>
-                <small class="text-muted">Роль: {{ p.role }}</small>
-                <p class="mb-0 mt-1 small">{{ p.description }}</p>
-              </div>
-              <div class="text-end">
-                <span class="badge bg-primary fs-6">{{ p.points }} очков</span>
-
-                <span v-if="isWinner(p) === true" class="badge bg-success ms-2">Победа</span>
-                <span v-if="isWinner(p) === false" class="badge bg-secondary ms-2">Проигрыш</span>
-                <span v-if="isWinner(p) === null" class="badge bg-warning text-dark ms-2">Не определено</span>
-
-                <div v-if="profileStore.isManager" class="mt-2">
-                  <button class="btn btn-sm btn-success me-1" data-bs-toggle="modal" data-bs-target="#editPlayerModal" @click="onEditClick(p)">Ред.</button>
-                  <button class="btn btn-sm btn-danger" @click="removePlayer(p.id)">Удал.</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <RoundPlayerCard
+          :player="p"
+          :user-name="userName(p.user)"
+          :is-manager="profileStore.isManager"
+          :win-status="isWinner(p)"
+          @edit="openEditModal"
+          @remove="removePlayer"
+        />
       </div>
     </div>
   </div>
 
-  <div class="modal fade" id="editPlayerModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Редактировать игрока</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-          <select v-model="playerToEdit.role" class="form-select mb-2">
-            <option value="Мирный">Мирный</option>
-            <option value="Мафия">Мафия</option>
-            <option value="Дон">Дон</option>
-            <option value="Шериф">Шериф</option>
-            <option value="Доктор">Доктор</option>
-          </select>
-          <input v-model.number="playerToEdit.points" type="number" step="0.1" class="form-control mb-2" placeholder="Очки" />
-          <textarea v-model="playerToEdit.description" class="form-control mb-2" placeholder="Описание"></textarea>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-          <button class="btn btn-primary" data-bs-dismiss="modal" @click="updatePlayer">Сохранить</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <RoundPlayerEditModal
+    v-if="showEditModal"
+    :player="playerToEdit"
+    @close="showEditModal = false"
+    @save="handleSavePlayer"
+  />
 </template>

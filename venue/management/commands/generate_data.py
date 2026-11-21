@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from faker import Faker
 from venue.models import Venue, Session, Booking, Round, RoundPlayer, GameMode
 
+
 class Command(BaseCommand):
     def handle(self, *args, **options):
         fake = Faker(['ru_RU'])
@@ -15,15 +16,33 @@ class Command(BaseCommand):
         #Venue.objects.all().delete()
         #GameMode.objects.all().delete()
         #User.objects.exclude(is_superuser=True).delete()
+
         mode = GameMode.objects.create(name="Спортивная мафия")
+
         venues = [Venue.objects.create(name=fake.company(), address=fake.address()) for _ in range(10)]
-        sessions = [Session.objects.create(venue=random.choice(venues), date=fake.date(), start_time=fake.time(), title="Игра", game_mode=mode) for _ in range(100)]
+
+        sessions = []
+        for _ in range(100):
+            dt = fake.date_time_between(start_date='-15d', end_date='+15d')
+            sessions.append(Session.objects.create(
+                venue=random.choice(venues),
+                date=dt.date(),
+                start_time=dt.time(),
+                title="Игра",
+                game_mode=mode
+            ))
+
         users = [User.objects.create_user(username=fake.unique.user_name(), password="123") for _ in range(100)]
+
         rounds = []
         for s in sessions:
             winning_team = random.choice(['mafia', 'town'])
             rounds.append(Round.objects.create(
-                session=s, number=1, host=random.choice(users), game_mode=mode, winning_team=winning_team
+                session=s,
+                number=1,
+                host=random.choice(users),
+                game_mode=mode,
+                winning_team=winning_team
             ))
 
         for _ in range(1000):

@@ -1,19 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="8597d0f7-3a7d-41f5-8032-59251221d7f5" name="Changes" comment="crate faker">
-      <change afterPath="$PROJECT_DIR$/client/src/components/modals/BookingModal.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/components/modals/ImageModal.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/components/modals/SessionEditModal.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/components/sessions/SessionCard.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/components/sessions/SessionTableRow.vue" afterDir="false" />
+    <list default="true" id="8597d0f7-3a7d-41f5-8032-59251221d7f5" name="Changes" comment="decomposition SessionList.vue">
+      <change afterPath="$PROJECT_DIR$/client/src/components/Pagination.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/components/bookings/BookingTableRow.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/components/modals/BookingEditModal.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/components/modals/RoundEditModal.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/components/modals/RoundPlayerEditModal.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/components/modals/VenueEditModal.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/components/rounds/RoundCard.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/components/rounds/RoundPlayerCard.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/components/venues/VenueTableRow.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/utils/excel.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/AboutPage.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/AboutPage.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/pages/BookingList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/BookingList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/RoundDetail.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/RoundDetail.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/pages/RoundList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/RoundList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/RulesPage.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/RulesPage.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/pages/SessionList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/SessionList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/VenueList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/VenueList.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/venue/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/venue/api.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/venue/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/venue/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/venue/management/commands/generate_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/venue/management/commands/generate_data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/venue/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/venue/serializers.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -341,7 +351,10 @@
       <workItem from="1794367593786" duration="350000" />
       <workItem from="1794628232449" duration="3968000" />
       <workItem from="1794756042677" duration="2406000" />
-      <workItem from="1794896223441" duration="3760000" />
+      <workItem from="1794896223441" duration="9439000" />
+      <workItem from="1794967670426" duration="4940000" />
+      <workItem from="1794993741493" duration="1393000" />
+      <workItem from="1795235801402" duration="4074000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -463,7 +476,15 @@
       <option name="project" value="LOCAL" />
       <updated>1794632697081</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="decomposition SessionList.vue">
+      <option name="closed" value="true" />
+      <created>1794900690810</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1794900690810</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -496,7 +517,8 @@
     <MESSAGE value="add image" />
     <MESSAGE value="add gamer" />
     <MESSAGE value="crate faker" />
-    <option name="LAST_COMMIT_MESSAGE" value="crate faker" />
+    <MESSAGE value="decomposition SessionList.vue" />
+    <option name="LAST_COMMIT_MESSAGE" value="decomposition SessionList.vue" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/PersonalCatalog$Test__venue_tests.coverage" NAME="Test: venue.tests Coverage Results" MODIFIED="1791340141571" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />

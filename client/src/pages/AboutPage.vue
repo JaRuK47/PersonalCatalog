@@ -1,3 +1,5 @@
+<script setup>
+</script>
 <template>
   <div class="container mt-5 mb-5">
     <div class="text-center mb-5 py-5 bg-white rounded-4 shadow-sm">
@@ -13,21 +15,18 @@
     <div class="row g-4 mb-5">
       <div class="col-md-4">
         <div class="card h-100 shadow-sm border-0 bg-light p-4 text-center">
-          <h2 class="mb-3">📍</h2>
           <h4 class="fw-bold">Где мы находимся</h4>
           <p class="mb-0 text-muted">г. Иркутск,<br>ул. Литвинова, 1</p>
         </div>
       </div>
       <div class="col-md-4">
         <div class="card h-100 shadow-sm border-0 bg-light p-4 text-center">
-          <h2 class="mb-3">📅</h2>
           <h4 class="fw-bold">Когда играем</h4>
           <p class="mb-0 text-muted">Каждый вторник, среду,<br>пятницу и воскресенье</p>
         </div>
       </div>
       <div class="col-md-4">
         <div class="card h-100 shadow-sm border-0 bg-light p-4 text-center">
-          <h2 class="mb-3">💳</h2>
           <h4 class="fw-bold">Стоимость</h4>
           <p class="mb-0 text-muted">Игровой вечер — 400р.<br><span class="text-success fw-bold">Для студентов — 270р.</span></p>
         </div>
@@ -39,38 +38,30 @@
       <div class="row">
         <div class="col-md-6 mb-4">
           <div class="d-flex align-items-start">
-            <span class="fs-3 me-3">🕵️</span>
-            <div>
               <h5 class="mb-1">Спортивная мафия</h5>
+              <br>
               <p class="text-muted small mb-0">Классический турнирный формат для опытных игроков.</p>
-            </div>
           </div>
         </div>
         <div class="col-md-6 mb-4">
           <div class="d-flex align-items-start">
-            <span class="fs-3 me-3">🎭</span>
-            <div>
               <h5 class="mb-1">Городская мафия</h5>
+              <br>
               <p class="text-muted small mb-0">Лёгкая и атмосферная игра для компаний и праздников.</p>
-            </div>
           </div>
         </div>
         <div class="col-md-6 mb-4">
           <div class="d-flex align-items-start">
-            <span class="fs-3 me-3">👶</span>
-            <div>
               <h5 class="mb-1">Детская мафия</h5>
+              <br>
               <p class="text-muted small mb-0">Специальные сценарии для детей и подростков.</p>
-            </div>
           </div>
         </div>
         <div class="col-md-6 mb-4">
           <div class="d-flex align-items-start">
-            <span class="fs-3 me-3">🧩</span>
-            <div>
               <h5 class="mb-1">Мафия для новичков</h5>
+              <br>
               <p class="text-muted small mb-0">Научим играть с нуля. Объясним правила и роли.</p>
-            </div>
           </div>
         </div>
       </div>

@@ -1,7 +1,5 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from django.utils import timezone
-from datetime import datetime, timedelta, time
 from .models import Venue, Session, Booking, Round, RoundPlayer, GameMode
 
 class GameModeSerializer(serializers.ModelSerializer):
@@ -14,53 +12,30 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username']
 
-
 class VenueSerializer(serializers.ModelSerializer):
     class Meta:
         model = Venue
         fields = '__all__'
 
-
 class SessionSerializer(serializers.ModelSerializer):
-    status = serializers.SerializerMethodField()
+    status = serializers.ReadOnlyField()
     booked_users = serializers.SerializerMethodField()
 
     class Meta:
         model = Session
-        fields = '__all__'
-
-    def get_status(self, obj):
-        if obj.is_cancelled: return "Отменена"
-        if not obj.date or not obj.start_time: return "Идёт набор"
-        start = timezone.make_aware(datetime.combine(obj.date, obj.start_time), timezone.get_current_timezone())
-        now = timezone.now()
-        if now < start:
-            return "Идёт набор"
-        elif start <= now < start + timedelta(hours=5):
-            return "Активно"
-        else:
-            return "Завершена"
+        exclude = ['db_status']
 
     def get_booked_users(self, obj):
         bookings = obj.bookings.filter(status__in=['active', 'attended'])
         return [b.user.username for b in bookings]
 
 class BookingSerializer(serializers.ModelSerializer):
-    status_display = serializers.SerializerMethodField()
-    user_name = serializers.ReadOnlyField(source='user.username')
+    status_display = serializers.ReadOnlyField()
+    user_name = serializers.ReadOnlyField()
 
     class Meta:
         model = Booking
         fields = '__all__'
-
-    def get_status_display(self, obj):
-        if obj.status == 'cancelled': return "Отменено"
-        if obj.status == 'no_show': return "Неявка"
-        if not obj.session.date or not obj.session.start_time: return "Ожидание"
-        end_time = timezone.make_aware(datetime.combine(obj.session.date, obj.session.start_time),
-                                       timezone.get_current_timezone()) + timedelta(hours=5)
-        if timezone.now() > end_time: return "Явился"
-        return "Активно"
 
     def create(self, validated_data):
         user = self.context['request'].user
@@ -69,18 +44,12 @@ class BookingSerializer(serializers.ModelSerializer):
                 pass
             else:
                 validated_data['user'] = user
-
         return super().create(validated_data)
-
 
 class RoundPlayerSerializer(serializers.ModelSerializer):
     class Meta:
         model = RoundPlayer
         fields = '__all__'
-
-    def create(self, validated_data):
-        return super().create(validated_data)
-
 
 class RoundSerializer(serializers.ModelSerializer):
     class Meta:
